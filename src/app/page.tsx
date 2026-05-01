@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { topics, STATUS_LABELS, ProblemStatus } from '@/data/topics';
 import { useTrackerState } from '@/hooks/useTrackerState';
 import { useAuth } from '@/context/AuthContext';
 import {
   XPLevelBadge, DailyQuestsPanel, WeaknessPanel, MockInterviewModal,
   ConfidencePopup, RevisionDueWidget, ProblemTimer, CompanyTagInput,
+  GlobalPomodoro, CustomProblemModal, RichNotesInput, ShareCardModal, AIHintModal
 } from './components';
 
 /* ── Tiny SVG Icons ── */
@@ -180,6 +181,12 @@ export default function Home() {
     updateCompanyTags,
     updateTimeSpent,
     generateMockInterview,
+    fullTopics,
+    pomodoro,
+    addCustomProblem,
+    addPomodoroSession,
+    exportData,
+    importData
   } = useTrackerState();
 
   const [expandedTopics, setExpandedTopics] = useState<Set<number>>(new Set([1]));
@@ -189,8 +196,25 @@ export default function Home() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showWeakness, setShowWeakness] = useState(false);
   const [showMockInterview, setShowMockInterview] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
+  const [showCustomProblem, setShowCustomProblem] = useState(false);
+  const [showHintFor, setShowHintFor] = useState<{ topicId: number; problemId: number; problemName: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [confidenceTarget, setConfidenceTarget] = useState<{ topicId: number; problemId: number } | null>(null);
   const topicRefs = useRef<Record<number, HTMLElement | null>>({});
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // cmd+k or ctrl+k to focus search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const toggleTopic = useCallback((id: number) => {
     setExpandedTopics((prev) => {
@@ -368,6 +392,9 @@ export default function Home() {
         {/* XP Level Badge */}
         <XPLevelBadge xpData={xpData} />
 
+        {/* Global Pomodoro */}
+        <GlobalPomodoro pomodoroData={pomodoro} onComplete={addPomodoroSession} />
+
         {/* Daily Quests */}
         <DailyQuestsPanel quests={dailyQuests} />
 
@@ -377,9 +404,9 @@ export default function Home() {
         {/* Topic nav */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '6px 8px' }}>
           <div style={{ padding: '3px 8px', marginBottom: 3 }}>
-            <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Topics ({topics.length})</span>
+            <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Topics ({fullTopics.length})</span>
           </div>
-          {topics.map((topic) => {
+          {fullTopics.map((topic) => {
             const stats = topicStats.find((s) => s.topicId === topic.id);
             const locked = isTopicLocked(topic.id);
             return (
@@ -398,13 +425,20 @@ export default function Home() {
 
         {/* Bottom actions */}
         <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {/* Achievements button */}
-          <button
-            onClick={() => setShowAchievements(true)}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 8, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(167,139,250,0.04)', color: 'var(--accent-primary)', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
-          >
-            <TrophyIcon /> Achievements ({earnedCount}/{achievements.length})
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={() => setShowAchievements(true)}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 8, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(167,139,250,0.04)', color: 'var(--accent-primary)', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              <TrophyIcon /> {earnedCount}/{achievements.length}
+            </button>
+            <button
+              onClick={() => setShowShareCard(true)}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 8, border: '1px solid rgba(245,158,11,0.25)', background: 'rgba(245,158,11,0.04)', color: '#f59e0b', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              📸 Share
+            </button>
+          </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => setShowWeakness(true)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.04)', color: 'var(--level-hard)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
               🎯 Weakness
@@ -412,6 +446,22 @@ export default function Home() {
             <button onClick={() => setShowMockInterview(true)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid rgba(34,197,94,0.2)', background: 'rgba(34,197,94,0.04)', color: 'var(--level-easy)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
               ⚔️ Mock
             </button>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={exportData} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
+              💾 Export
+            </button>
+            <label style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', margin: 0 }}>
+              <input type="file" accept=".json" style={{ display: 'none' }} onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (ev) => importData(ev.target?.result as string);
+                  reader.readAsText(file);
+                }
+              }} />
+              📂 Import
+            </label>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => window.print()} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
@@ -427,12 +477,30 @@ export default function Home() {
       {/* ─── Main Content ─── */}
       <main style={{ flex: 1, overflow: 'auto' }}>
         {/* Header bar */}
-        <header style={{ position: 'sticky', top: 0, zIndex: 15, background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-subtle)', padding: '12px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
+        <header style={{ position: 'sticky', top: 0, zIndex: 15, background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-subtle)', padding: '12px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ flexShrink: 0 }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>DSA Progress Tracker</h2>
-            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>15 Topics · 175 Problems · Easy / Medium / Hard</p>
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>15 Topics · {globalStats.allTotal} Problems · Easy / Medium / Hard</p>
           </div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          
+          <div style={{ flex: 1, maxWidth: 300 }}>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', opacity: 0.5 }}>🔍</span>
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search problems... (⌘K)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ width: '100%', padding: '6px 12px 6px 28px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', fontSize: '0.75rem' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+            <button onClick={() => setShowCustomProblem(true)} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--accent-primary)', border: 'none', color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+              + Add Problem
+            </button>
             {user && (
               <span style={{ fontSize: '0.65rem', padding: '3px 8px', borderRadius: 4, background: 'rgba(34,197,94,0.08)', color: 'var(--status-solved)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <CloudIcon syncing={syncing} /> {syncing ? 'Syncing...' : 'Synced'}
@@ -489,7 +557,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {topics.map((topic) => {
+                {fullTopics.map((topic) => {
                   const stats = topicStats.find((s) => s.topicId === topic.id);
                   const locked = isTopicLocked(topic.id);
                   return (
@@ -517,11 +585,9 @@ export default function Home() {
                 <tr style={{ background: 'rgba(167,139,250,0.04)' }}>
                   <td></td>
                   <td style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>TOTAL</td>
-                  <td style={{ textAlign: 'center', fontFamily: 'var(--font-geist-mono)', fontWeight: 800, color: 'var(--accent-primary)' }}>175</td>
-                  <td style={{ textAlign: 'center' }}><span className="level-badge level-Easy" style={{ fontWeight: 800 }}>43</span></td>
-                  <td style={{ textAlign: 'center' }}><span className="level-badge level-Medium" style={{ fontWeight: 800 }}>95</span></td>
-                  <td style={{ textAlign: 'center' }}><span className="level-badge level-Hard" style={{ fontWeight: 800 }}>37</span></td>
-                  <td style={{ textAlign: 'center', fontFamily: 'var(--font-geist-mono)', fontWeight: 800, color: 'var(--accent-primary)' }}>{globalStats.totalSolved} / 175</td>
+                  <td style={{ textAlign: 'center', fontFamily: 'var(--font-geist-mono)', fontWeight: 800, color: 'var(--accent-primary)' }}>{globalStats.allTotal}</td>
+                  <td colSpan={3}></td>
+                  <td style={{ textAlign: 'center', fontFamily: 'var(--font-geist-mono)', fontWeight: 800, color: 'var(--accent-primary)' }}>{globalStats.totalSolved} / {globalStats.allTotal}</td>
                   <td><div className="progress-bar-track"><div className={`progress-bar-fill${globalStats.pct === 100 ? ' complete' : ''}`} style={{ width: `${globalStats.pct}%` }} /></div></td>
                   <td style={{ fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-geist-mono)' }}>{globalStats.pct}%</td>
                 </tr>
@@ -612,33 +678,36 @@ export default function Home() {
                         </tr>
                       </thead>
                       <tbody>
-                        {topic.problems.map((problem) => {
+                        {topic.problems.filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.level.toLowerCase().includes(searchQuery.toLowerCase()) || p.platform.toLowerCase().includes(searchQuery.toLowerCase())).map((problem) => {
                           const state = getProblemState(topic.id, problem.id);
                           const isSolved = state.status === 'solved';
                           return (
                             <tr key={problem.id}>
                               <td style={{ textAlign: 'center', fontFamily: 'var(--font-geist-mono)', fontWeight: 600, fontSize: '0.75rem', color: 'var(--text-muted)' }}>{problem.id}</td>
                               <td>
-                                <a
-                                  href={problem.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{
-                                    color: isSolved ? 'var(--level-easy)' : 'var(--text-primary)',
-                                    textDecorationLine: isSolved ? 'line-through' : 'none',
-                                    textDecorationColor: 'rgba(34,197,94,0.3)',
-                                    textDecorationStyle: 'solid' as const,
-                                    fontSize: '0.8rem',
-                                    fontWeight: 600,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                    transition: 'color 0.15s',
-                                  }}
-                                >
-                                  {problem.name}
-                                  <span style={{ opacity: 0.3, flexShrink: 0 }}><ExternalLink /></span>
-                                </a>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <a
+                                    href={problem.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      color: isSolved ? 'var(--level-easy)' : 'var(--text-primary)',
+                                      textDecorationLine: isSolved ? 'line-through' : 'none',
+                                      textDecorationColor: 'rgba(34,197,94,0.3)',
+                                      textDecorationStyle: 'solid' as const,
+                                      fontSize: '0.8rem',
+                                      fontWeight: 600,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      transition: 'color 0.15s',
+                                    }}
+                                  >
+                                    {problem.name}
+                                    <span style={{ opacity: 0.3, flexShrink: 0 }}><ExternalLink /></span>
+                                  </a>
+                                  <button onClick={() => setShowHintFor({ topicId: topic.id, problemId: problem.id, problemName: problem.name })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.6, padding: '2px 4px', borderRadius: 4 }} title="Get AI Hint">🤖</button>
+                                </div>
                                 {state.nextReviseDate && state.status === 'solved' && (
                                   <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>
                                     📅 Revise: {state.nextReviseDate}
@@ -672,8 +741,8 @@ export default function Home() {
                               <td style={{ textAlign: 'center' }}>
                                 <CompanyTagInput tags={state.companyTags || []} onChange={(tags) => updateCompanyTags(topic.id, problem.id, tags)} />
                               </td>
-                              <td>
-                                <input className="notes-input" type="text" placeholder="Add notes..." value={state.notes} onChange={(e) => updateNotes(topic.id, problem.id, e.target.value)} />
+                              <td style={{ minWidth: 200 }}>
+                                <RichNotesInput initialNotes={state.notes || ''} onSave={(val) => updateNotes(topic.id, problem.id, val)} />
                               </td>
                             </tr>
                           );
@@ -731,6 +800,33 @@ export default function Home() {
             setConfidenceTarget(null);
           }}
           onClose={() => setConfidenceTarget(null)}
+        />
+      )}
+
+      {/* ─── Custom Problem Modal ─── */}
+      {showCustomProblem && (
+        <CustomProblemModal 
+          topics={fullTopics} 
+          onAdd={(p) => addCustomProblem(p)} 
+          onClose={() => setShowCustomProblem(false)} 
+        />
+      )}
+
+      {/* ─── Share Card Modal ─── */}
+      {showShareCard && (
+        <ShareCardModal 
+          stats={globalStats} 
+          xp={xpData} 
+          streak={streakData} 
+          onClose={() => setShowShareCard(false)} 
+        />
+      )}
+
+      {/* ─── AI Hint Modal ─── */}
+      {showHintFor && (
+        <AIHintModal 
+          problemName={showHintFor.problemName} 
+          onClose={() => setShowHintFor(null)} 
         />
       )}
     </div>

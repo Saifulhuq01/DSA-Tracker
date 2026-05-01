@@ -60,6 +60,21 @@ export interface WeaknessReport {
   totalCount: number;
 }
 
+export interface CustomProblem {
+  id: number;
+  topicId: number;
+  name: string;
+  level: 'Easy' | 'Medium' | 'Hard';
+  url: string;
+  platform: string;
+}
+
+export interface PomodoroData {
+  sessionsCompleted: number;
+  totalFocusMinutes: number;
+  lastSessionDate: string;
+}
+
 export type TrackerData = Record<string, ProblemState>;
 
 const STORAGE_KEY = 'dsa-tracker-state';
@@ -67,6 +82,8 @@ const DATE_KEY = 'dsa-tracker-start-date';
 const STREAK_KEY = 'dsa-tracker-streak';
 const XP_KEY = 'dsa-tracker-xp';
 const QUEST_KEY = 'dsa-tracker-quests';
+const CUSTOM_PROBLEMS_KEY = 'dsa-tracker-custom';
+const POMODORO_KEY = 'dsa-tracker-pomodoro';
 
 function getKey(topicId: number, problemId: number): string {
   return `${topicId}-${problemId}`;
@@ -158,7 +175,29 @@ export function useTrackerState() {
   const [syncing, setSyncing] = useState(false);
   const [xpData, setXPData] = useState<XPData>({ totalXP: 0, level: 1, xpToNext: 100, xpHistory: {} });
   const [dailyQuests, setDailyQuests] = useState<DailyQuestData>({ date: '', quests: [], allCompleted: false, bonusXPClaimed: false });
+  const [customProblems, setCustomProblems] = useState<CustomProblem[]>([]);
+  const [pomodoro, setPomodoro] = useState<PomodoroData>({ sessionsCompleted: 0, totalFocusMinutes: 0, lastSessionDate: '' });
   const autoReviseRanRef = useRef(false);
+
+  // Combine static topics with custom problems
+  const fullTopics = useMemo(() => {
+    return topics.map(t => {
+      const customs = customProblems.filter(cp => cp.topicId === t.id);
+      if (customs.length === 0) return t;
+      return {
+        ...t,
+        total: t.total + customs.length,
+        problems: [...t.problems, ...customs.map(c => ({
+          id: c.id,
+          name: c.name,
+          level: c.level,
+          platform: c.platform,
+          linkId: 'Custom',
+          url: c.url
+        }))]
+      };
+    });
+  }, [customProblems]);
 
   // XP helper
   function computeLevel(totalXP: number): { level: number; xpToNext: number } {
@@ -177,7 +216,7 @@ export function useTrackerState() {
     let reviseCount = 0;
     let unsolvedCount = 0;
     let hardUnsolved = 0;
-    topics.forEach((t) => t.problems.forEach((p) => {
+    fullTopics.forEach((t) => t.problems.forEach((p) => {
       const s = currentData[getKey(t.id, p.id)];
       if (s?.status === 'revise') reviseCount++;
       if (!s || s.status === 'not_started' || s.status === 'attempted') unsolvedCount++;
@@ -207,6 +246,12 @@ export function useTrackerState() {
 
     const xpLoaded = loadLocal<XPData>(XP_KEY, { totalXP: 0, level: 1, xpToNext: 100, xpHistory: {} });
     setXPData(xpLoaded);
+
+    const customLoaded = loadLocal<CustomProblem[]>(CUSTOM_PROBLEMS_KEY, []);
+    setCustomProblems(customLoaded);
+
+    const pomodoroLoaded = loadLocal<PomodoroData>(POMODORO_KEY, { sessionsCompleted: 0, totalFocusMinutes: 0, lastSessionDate: '' });
+    setPomodoro(pomodoroLoaded);
 
     const questLoaded = loadLocal<DailyQuestData>(QUEST_KEY, { date: '', quests: [], allCompleted: false, bonusXPClaimed: false });
     const today = getTodayStr();
@@ -238,7 +283,7 @@ export function useTrackerState() {
 
     let unsub: (() => void) | undefined;
 
-    const setupSync = async () => {
+      const setupSync = async () => {
       const { doc, setDoc, getDoc, onSnapshot } = await import('firebase/firestore');
       const docRef = doc(db!, 'trackerData', user.uid);
 
@@ -246,13 +291,21 @@ export function useTrackerState() {
       try {
         const snap = await getDoc(docRef);
         if (snap.exists()) {
-          const cloudData = snap.data() as { progress: TrackerData; streak: StreakData; startDate: string };
+          const cloudData = snap.data() as { progress: TrackerData; streak: StreakData; startDate: string; customProblems?: CustomProblem[]; pomodoro?: PomodoroData };
           const merged = { ...cloudData.progress, ...data };
           setData(merged);
           saveLocal(STORAGE_KEY, merged);
           if (cloudData.streak) {
             setStreakData(cloudData.streak);
             saveLocal(STREAK_KEY, cloudData.streak);
+          }
+          if (cloudData.customProblems) {
+            setCustomProblems(cloudData.customProblems);
+            saveLocal(CUSTOM_PROBLEMS_KEY, cloudData.customProblems);
+          }
+          if (cloudData.pomodoro) {
+            setPomodoro(cloudData.pomodoro);
+            saveLocal(POMODORO_KEY, cloudData.pomodoro);
           }
           if (cloudData.startDate) {
             setStartDate(cloudData.startDate);
@@ -287,9 +340,11 @@ export function useTrackerState() {
 
   // Persist helper - saves to both local and cloud
   const persist = useCallback(
-    async (newData: TrackerData, newStreak: StreakData) => {
+    async (newData: TrackerData, newStreak: StreakData, newCustom?: CustomProblem[], newPomodoro?: PomodoroData) => {
       saveLocal(STORAGE_KEY, newData);
       saveLocal(STREAK_KEY, newStreak);
+      if (newCustom) saveLocal(CUSTOM_PROBLEMS_KEY, newCustom);
+      if (newPomodoro) saveLocal(POMODORO_KEY, newPomodoro);
 
       if (user && isConfigured && db) {
         setSyncing(true);
@@ -299,7 +354,13 @@ export function useTrackerState() {
           try {
             const { doc, setDoc } = await import('firebase/firestore');
             const docRef = doc(db!, 'trackerData', user.uid);
-            await setDoc(docRef, { progress: newData, streak: newStreak, startDate }, { merge: true });
+            await setDoc(docRef, { 
+              progress: newData, 
+              streak: newStreak, 
+              startDate,
+              ...(newCustom && { customProblems: newCustom }),
+              ...(newPomodoro && { pomodoro: newPomodoro })
+            }, { merge: true });
           } catch (err) {
             console.error('Cloud sync error:', err);
           } finally {
@@ -453,7 +514,7 @@ export function useTrackerState() {
         setStreakData(newStreak);
 
         // Award XP based on problem difficulty
-        const problem = topics.find((t) => t.id === topicId)?.problems.find((p) => p.id === problemId);
+        const problem = fullTopics.find((t) => t.id === topicId)?.problems.find((p) => p.id === problemId);
         if (problem) {
           awardXP(getXPForDifficulty(problem.level));
         }
@@ -516,7 +577,7 @@ export function useTrackerState() {
   );
 
   const topicStats = useMemo(() => {
-    return topics.map((topic) => {
+    return fullTopics.map((topic) => {
       let solved = 0;
       let attempted = 0;
       let revise = 0;
@@ -538,7 +599,7 @@ export function useTrackerState() {
     let totalProblems = 0;
     let solvedProblems = 0;
     for (let i = 0; i < 7; i++) {
-      const topic = topics[i];
+      const topic = fullTopics[i];
       totalProblems += topic.total;
       topic.problems.forEach((p) => {
         const state = data[getKey(topic.id, p.id)];
@@ -552,8 +613,9 @@ export function useTrackerState() {
     let totalSolved = 0;
     let totalAttempted = 0;
     let totalRevise = 0;
-    const allTotal = 175;
-    topics.forEach((topic) => {
+    let allTotal = 0;
+    fullTopics.forEach((topic) => {
+      allTotal += topic.total;
       topic.problems.forEach((p) => {
         const state = data[getKey(topic.id, p.id)];
         if (state?.status === 'solved') totalSolved++;
@@ -651,7 +713,7 @@ export function useTrackerState() {
         icon: '💀',
         earned: (() => {
           let hardSolved = 0;
-          topics.forEach((t) =>
+          fullTopics.forEach((t) =>
             t.problems.forEach((p) => {
               if (p.level === 'Hard' && data[getKey(t.id, p.id)]?.status === 'solved') hardSolved++;
             })
@@ -667,7 +729,7 @@ export function useTrackerState() {
   }, [globalStats, topicStats, foundationComplete, streakData, data, xpData, dailyQuests]);
 
   const weaknessReport = useMemo((): WeaknessReport[] => {
-    return topics.map((topic) => {
+    return fullTopics.map((topic) => {
       const stats = topicStats.find((s) => s.topicId === topic.id);
       return { topicId: topic.id, topicName: topic.name, completionPct: stats?.pct || 0, solvedCount: stats?.solved || 0, totalCount: topic.total };
     }).sort((a, b) => a.completionPct - b.completionPct);
@@ -675,7 +737,7 @@ export function useTrackerState() {
 
   const generateMockInterview = useCallback((count: number = 3) => {
     const pool: { topicId: number; topicName: string; problemId: number; problemName: string; level: string; url: string }[] = [];
-    topics.forEach((t) => t.problems.forEach((p) => {
+    fullTopics.forEach((t) => t.problems.forEach((p) => {
       const state = data[getKey(t.id, p.id)];
       if (!state || state.status !== 'solved') {
         pool.push({ topicId: t.id, topicName: t.name, problemId: p.id, problemName: p.name, level: p.level, url: p.url });
@@ -691,7 +753,7 @@ export function useTrackerState() {
   const revisionDueToday = useMemo(() => {
     const now = Date.now();
     const due: { topicId: number; problemId: number; problemName: string; daysOverdue: number }[] = [];
-    topics.forEach((t) => t.problems.forEach((p) => {
+    fullTopics.forEach((t) => t.problems.forEach((p) => {
       const state = data[getKey(t.id, p.id)];
       if (state?.status === 'revise') {
         const overdue = state.nextReviseDate ? Math.max(0, Math.floor((now - new Date(state.nextReviseDate).getTime()) / 86400000)) : 0;
@@ -713,10 +775,66 @@ export function useTrackerState() {
     await persist(empty, emptyStreak);
   }, [persist]);
 
+  const addCustomProblem = useCallback((problem: Omit<CustomProblem, 'id'>) => {
+    setCustomProblems(prev => {
+      const newProblem = { ...problem, id: Date.now() };
+      const updated = [...prev, newProblem];
+      persist(data, streakData, updated, pomodoro);
+      return updated;
+    });
+  }, [data, streakData, pomodoro, persist]);
+
+  const addPomodoroSession = useCallback((minutes: number) => {
+    setPomodoro(prev => {
+      const updated = {
+        sessionsCompleted: prev.sessionsCompleted + 1,
+        totalFocusMinutes: prev.totalFocusMinutes + minutes,
+        lastSessionDate: getTodayStr()
+      };
+      persist(data, streakData, customProblems, updated);
+      awardXP(20); // Bonus XP for Pomodoro
+      return updated;
+    });
+  }, [data, streakData, customProblems, persist, awardXP]);
+
+  const exportData = useCallback(() => {
+    const exportObj = {
+      progress: data,
+      streak: streakData,
+      startDate,
+      xpData,
+      customProblems,
+      pomodoro
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
+    const a = document.createElement('a');
+    a.href = dataStr;
+    a.download = `dsa_tracker_backup_${getTodayStr()}.json`;
+    a.click();
+  }, [data, streakData, startDate, xpData, customProblems, pomodoro]);
+
+  const importData = useCallback((jsonData: string) => {
+    try {
+      const parsed = JSON.parse(jsonData);
+      if (parsed.progress) setData(parsed.progress);
+      if (parsed.streak) setStreakData(parsed.streak);
+      if (parsed.startDate) setStartDate(parsed.startDate);
+      if (parsed.xpData) setXPData(parsed.xpData);
+      if (parsed.customProblems) setCustomProblems(parsed.customProblems);
+      if (parsed.pomodoro) setPomodoro(parsed.pomodoro);
+      persist(parsed.progress || data, parsed.streak || streakData, parsed.customProblems || customProblems, parsed.pomodoro || pomodoro);
+      return true;
+    } catch (e) {
+      console.error("Failed to import data", e);
+      return false;
+    }
+  }, [data, streakData, customProblems, pomodoro, persist]);
+
   return {
-    data, mounted, syncing, startDate, streakData, achievements,
+    data, mounted, syncing, startDate, streakData, achievements, fullTopics,
     getProblemState, cycleStatus, updateNotes, topicStats, foundationComplete, globalStats, resetAll,
-    xpData, dailyQuests, weaknessReport, revisionDueToday,
+    xpData, dailyQuests, weaknessReport, revisionDueToday, pomodoro,
     setSolveConfidence, updateCompanyTags, updateTimeSpent, generateMockInterview, awardXP,
+    addCustomProblem, addPomodoroSession, exportData, importData
   };
 }
