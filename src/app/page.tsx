@@ -4,6 +4,10 @@ import { useState, useRef, useCallback, useMemo } from 'react';
 import { topics, STATUS_LABELS, ProblemStatus } from '@/data/topics';
 import { useTrackerState } from '@/hooks/useTrackerState';
 import { useAuth } from '@/context/AuthContext';
+import {
+  XPLevelBadge, DailyQuestsPanel, WeaknessPanel, MockInterviewModal,
+  ConfidencePopup, RevisionDueWidget, ProblemTimer, CompanyTagInput,
+} from './components';
 
 /* ── Tiny SVG Icons ── */
 const ChevronDown = () => (
@@ -168,6 +172,14 @@ export default function Home() {
     foundationComplete,
     globalStats,
     resetAll,
+    xpData,
+    dailyQuests,
+    weaknessReport,
+    revisionDueToday,
+    setSolveConfidence,
+    updateCompanyTags,
+    updateTimeSpent,
+    generateMockInterview,
   } = useTrackerState();
 
   const [expandedTopics, setExpandedTopics] = useState<Set<number>>(new Set([1]));
@@ -175,6 +187,9 @@ export default function Home() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showWeakness, setShowWeakness] = useState(false);
+  const [showMockInterview, setShowMockInterview] = useState(false);
+  const [confidenceTarget, setConfidenceTarget] = useState<{ topicId: number; problemId: number } | null>(null);
   const topicRefs = useRef<Record<number, HTMLElement | null>>({});
 
   const toggleTopic = useCallback((id: number) => {
@@ -350,6 +365,15 @@ export default function Home() {
           </div>
         </div>
 
+        {/* XP Level Badge */}
+        <XPLevelBadge xpData={xpData} />
+
+        {/* Daily Quests */}
+        <DailyQuestsPanel quests={dailyQuests} />
+
+        {/* Revision Due */}
+        <RevisionDueWidget items={revisionDueToday} />
+
         {/* Topic nav */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '6px 8px' }}>
           <div style={{ padding: '3px 8px', marginBottom: 3 }}>
@@ -381,6 +405,14 @@ export default function Home() {
           >
             <TrophyIcon /> Achievements ({earnedCount}/{achievements.length})
           </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => setShowWeakness(true)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.04)', color: 'var(--level-hard)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
+              🎯 Weakness
+            </button>
+            <button onClick={() => setShowMockInterview(true)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid rgba(34,197,94,0.2)', background: 'rgba(34,197,94,0.04)', color: 'var(--level-easy)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
+              ⚔️ Mock
+            </button>
+          </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => window.print()} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
               <PrintIcon /> Print
@@ -574,7 +606,9 @@ export default function Home() {
                           <th style={{ width: 95 }}>Link / ID</th>
                           <th style={{ width: 115, textAlign: 'center' }}>Status</th>
                           <th style={{ width: 100 }}>Date Solved</th>
-                          <th style={{ minWidth: 140 }}>Notes</th>
+                          <th style={{ width: 70, textAlign: 'center' }}>Timer</th>
+                          <th style={{ width: 50, textAlign: 'center' }}>Tags</th>
+                          <th style={{ minWidth: 120 }}>Notes</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -605,17 +639,38 @@ export default function Home() {
                                   {problem.name}
                                   <span style={{ opacity: 0.3, flexShrink: 0 }}><ExternalLink /></span>
                                 </a>
+                                {state.nextReviseDate && state.status === 'solved' && (
+                                  <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>
+                                    📅 Revise: {state.nextReviseDate}
+                                  </span>
+                                )}
                               </td>
                               <td style={{ textAlign: 'center' }}><span className={`level-badge level-${problem.level}`}>{problem.level}</span></td>
                               <td><span className="platform-badge">{problem.platform}</span></td>
                               <td style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{problem.linkId}</td>
                               <td style={{ textAlign: 'center' }}>
-                                <button className={`status-btn status-${state.status}`} onClick={() => cycleStatus(topic.id, problem.id)} title="Click to cycle status">
+                                <button className={`status-btn status-${state.status}`} onClick={() => {
+                                  const next = cycleStatus(topic.id, problem.id);
+                                  if (next === 'solved') {
+                                    setConfidenceTarget({ topicId: topic.id, problemId: problem.id });
+                                  }
+                                }} title="Click to cycle status">
                                   {STATUS_LABELS[state.status]}
                                 </button>
                               </td>
                               <td style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.72rem', color: state.dateSolved ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                                 {state.dateSolved || '—'}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <ProblemTimer onStop={(ms) => updateTimeSpent(topic.id, problem.id, ms)} />
+                                {state.timeSpentMs ? (
+                                  <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', display: 'block' }}>
+                                    {Math.floor(state.timeSpentMs / 60000)}m
+                                  </span>
+                                ) : null}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <CompanyTagInput tags={state.companyTags || []} onChange={(tags) => updateCompanyTags(topic.id, problem.id, tags)} />
                               </td>
                               <td>
                                 <input className="notes-input" type="text" placeholder="Add notes..." value={state.notes} onChange={(e) => updateNotes(topic.id, problem.id, e.target.value)} />
@@ -656,6 +711,27 @@ export default function Home() {
       {/* ─── Achievements Modal ─── */}
       {showAchievements && (
         <AchievementsPanel achievements={achievements} onClose={() => setShowAchievements(false)} />
+      )}
+
+      {/* ─── Weakness Detector Modal ─── */}
+      {showWeakness && (
+        <WeaknessPanel report={weaknessReport} onClose={() => setShowWeakness(false)} />
+      )}
+
+      {/* ─── Mock Interview Modal ─── */}
+      {showMockInterview && (
+        <MockInterviewModal onClose={() => setShowMockInterview(false)} generateProblems={generateMockInterview} />
+      )}
+
+      {/* ─── SRS Confidence Popup ─── */}
+      {confidenceTarget && (
+        <ConfidencePopup
+          onSelect={(confidence) => {
+            setSolveConfidence(confidenceTarget.topicId, confidenceTarget.problemId, confidence);
+            setConfidenceTarget(null);
+          }}
+          onClose={() => setConfidenceTarget(null)}
+        />
       )}
     </div>
   );

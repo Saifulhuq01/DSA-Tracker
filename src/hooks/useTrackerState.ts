@@ -9,6 +9,15 @@ export interface ProblemState {
   status: ProblemStatus;
   dateSolved: string;
   notes: string;
+  // SRS fields
+  solveConfidence?: 'easy' | 'medium' | 'hard';
+  nextReviseDate?: string;
+  srsInterval?: number; // days
+  srsStage?: number; // 0=first, 1=second, etc.
+  // Company tags
+  companyTags?: string[];
+  // Timer
+  timeSpentMs?: number;
 }
 
 export interface StreakData {
@@ -19,11 +28,45 @@ export interface StreakData {
   solveHistory: Record<string, number>; // date -> count
 }
 
+export interface XPData {
+  totalXP: number;
+  level: number;
+  xpToNext: number;
+  xpHistory: Record<string, number>; // date -> xp gained
+}
+
+export interface DailyQuest {
+  id: string;
+  description: string;
+  target: number;
+  current: number;
+  type: 'solve' | 'revise' | 'topic' | 'hard';
+  xpReward: number;
+  completed: boolean;
+}
+
+export interface DailyQuestData {
+  date: string;
+  quests: DailyQuest[];
+  allCompleted: boolean;
+  bonusXPClaimed: boolean;
+}
+
+export interface WeaknessReport {
+  topicId: number;
+  topicName: string;
+  completionPct: number;
+  solvedCount: number;
+  totalCount: number;
+}
+
 export type TrackerData = Record<string, ProblemState>;
 
 const STORAGE_KEY = 'dsa-tracker-state';
 const DATE_KEY = 'dsa-tracker-start-date';
 const STREAK_KEY = 'dsa-tracker-streak';
+const XP_KEY = 'dsa-tracker-xp';
+const QUEST_KEY = 'dsa-tracker-quests';
 
 function getKey(topicId: number, problemId: number): string {
   return `${topicId}-${problemId}`;
@@ -113,6 +156,40 @@ export function useTrackerState() {
   const [startDate, setStartDate] = useState<string>('');
   const [mounted, setMounted] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [xpData, setXPData] = useState<XPData>({ totalXP: 0, level: 1, xpToNext: 100, xpHistory: {} });
+  const [dailyQuests, setDailyQuests] = useState<DailyQuestData>({ date: '', quests: [], allCompleted: false, bonusXPClaimed: false });
+  const autoReviseRanRef = useRef(false);
+
+  // XP helper
+  function computeLevel(totalXP: number): { level: number; xpToNext: number } {
+    const level = Math.floor(totalXP / 100) + 1;
+    const xpToNext = 100 - (totalXP % 100);
+    return { level, xpToNext };
+  }
+
+  function getXPForDifficulty(level: 'Easy' | 'Medium' | 'Hard'): number {
+    return level === 'Easy' ? 10 : level === 'Medium' ? 20 : 30;
+  }
+
+  // Generate daily quests based on current data
+  function generateDailyQuests(currentData: TrackerData): DailyQuest[] {
+    const today = getTodayStr();
+    let reviseCount = 0;
+    let unsolvedCount = 0;
+    let hardUnsolved = 0;
+    topics.forEach((t) => t.problems.forEach((p) => {
+      const s = currentData[getKey(t.id, p.id)];
+      if (s?.status === 'revise') reviseCount++;
+      if (!s || s.status === 'not_started' || s.status === 'attempted') unsolvedCount++;
+      if (p.level === 'Hard' && (!s || s.status !== 'solved')) hardUnsolved++;
+    }));
+    const quests: DailyQuest[] = [
+      { id: `solve-${today}`, description: 'Solve 3 problems today', target: 3, current: 0, type: 'solve', xpReward: 30, completed: false },
+      { id: `revise-${today}`, description: `Revise ${Math.min(2, reviseCount)} problems`, target: Math.min(2, Math.max(1, reviseCount)), current: 0, type: 'revise', xpReward: 20, completed: false },
+      { id: `hard-${today}`, description: 'Solve 1 Hard problem', target: 1, current: 0, type: 'hard', xpReward: 40, completed: false },
+    ];
+    return quests;
+  }
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -127,6 +204,19 @@ export function useTrackerState() {
       solveHistory: {},
     });
     setStreakData(streakLoaded);
+
+    const xpLoaded = loadLocal<XPData>(XP_KEY, { totalXP: 0, level: 1, xpToNext: 100, xpHistory: {} });
+    setXPData(xpLoaded);
+
+    const questLoaded = loadLocal<DailyQuestData>(QUEST_KEY, { date: '', quests: [], allCompleted: false, bonusXPClaimed: false });
+    const today = getTodayStr();
+    if (questLoaded.date !== today) {
+      const newQuests: DailyQuestData = { date: today, quests: generateDailyQuests(loaded), allCompleted: false, bonusXPClaimed: false };
+      setDailyQuests(newQuests);
+      saveLocal(QUEST_KEY, newQuests);
+    } else {
+      setDailyQuests(questLoaded);
+    }
 
     let sd = localStorage.getItem(DATE_KEY);
     if (!sd) {
@@ -221,12 +311,111 @@ export function useTrackerState() {
     [user, isConfigured, startDate]
   );
 
+  // SRS-aware auto-revise: uses nextReviseDate if set, fallback to 7 days
+  useEffect(() => {
+    if (!mounted || autoReviseRanRef.current) return;
+    autoReviseRanRef.current = true;
+
+    let hasChanges = false;
+    const now = Date.now();
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const updatedData = { ...data };
+
+    Object.keys(updatedData).forEach((key) => {
+      const state = updatedData[key];
+      if (state.status === 'solved' && state.dateSolved) {
+        if (state.nextReviseDate) {
+          const reviseTime = new Date(state.nextReviseDate).getTime();
+          if (!isNaN(reviseTime) && now >= reviseTime) {
+            updatedData[key] = { ...state, status: 'revise' };
+            hasChanges = true;
+          }
+        } else {
+          const solvedTime = new Date(state.dateSolved).getTime();
+          if (!isNaN(solvedTime) && now - solvedTime >= SEVEN_DAYS_MS) {
+            updatedData[key] = { ...state, status: 'revise' };
+            hasChanges = true;
+          }
+        }
+      }
+    });
+
+    if (hasChanges) {
+      setData(updatedData);
+      persist(updatedData, streakData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted]);
+
   const getProblemState = useCallback(
     (topicId: number, problemId: number): ProblemState => {
       const key = getKey(topicId, problemId);
       return data[key] || { status: 'not_started', dateSolved: '', notes: '' };
     },
     [data]
+  );
+
+  // Award XP helper
+  const awardXP = useCallback((amount: number) => {
+    setXPData((prev) => {
+      const todayKey = getTodayStr();
+      const newTotal = prev.totalXP + amount;
+      const { level, xpToNext } = computeLevel(newTotal);
+      const newXP: XPData = {
+        totalXP: newTotal,
+        level,
+        xpToNext,
+        xpHistory: { ...prev.xpHistory, [todayKey]: (prev.xpHistory[todayKey] || 0) + amount },
+      };
+      saveLocal(XP_KEY, newXP);
+      return newXP;
+    });
+  }, []);
+
+  // Update quest progress helper
+  const updateQuestProgress = useCallback((type: 'solve' | 'revise' | 'hard') => {
+    setDailyQuests((prev) => {
+      const updatedQuests = prev.quests.map((q) => {
+        if (q.type === type && !q.completed) {
+          const newCurrent = q.current + 1;
+          const completed = newCurrent >= q.target;
+          if (completed) awardXP(q.xpReward);
+          return { ...q, current: newCurrent, completed };
+        }
+        return q;
+      });
+      const allDone = updatedQuests.every((q) => q.completed);
+      let bonusClaimed = prev.bonusXPClaimed;
+      if (allDone && !bonusClaimed) {
+        awardXP(50); // bonus for completing all quests
+        bonusClaimed = true;
+      }
+      const newQuestData: DailyQuestData = { ...prev, quests: updatedQuests, allCompleted: allDone, bonusXPClaimed: bonusClaimed };
+      saveLocal(QUEST_KEY, newQuestData);
+      return newQuestData;
+    });
+  }, [awardXP]);
+
+  // Solve with confidence (SRS) — called after cycleStatus sets to 'solved'
+  const setSolveConfidence = useCallback(
+    (topicId: number, problemId: number, confidence: 'easy' | 'medium' | 'hard') => {
+      const key = getKey(topicId, problemId);
+      const current = data[key];
+      if (!current) return;
+
+      const baseInterval = confidence === 'easy' ? 14 : confidence === 'medium' ? 7 : 3;
+      const stage = (current.srsStage || 0);
+      const interval = baseInterval * Math.pow(2, stage);
+      const nextDate = new Date(Date.now() + interval * 86400000).toISOString().split('T')[0];
+
+      const updated: TrackerData = {
+        ...data,
+        [key]: { ...current, solveConfidence: confidence, srsInterval: interval, srsStage: stage + 1, nextReviseDate: nextDate },
+      };
+      setData(updated);
+      persist(updated, streakData);
+    },
+    [data, streakData, persist]
   );
 
   const cycleStatus = useCallback(
@@ -262,10 +451,52 @@ export function useTrackerState() {
           longestStreak: computed.longestStreak,
         };
         setStreakData(newStreak);
+
+        // Award XP based on problem difficulty
+        const problem = topics.find((t) => t.id === topicId)?.problems.find((p) => p.id === problemId);
+        if (problem) {
+          awardXP(getXPForDifficulty(problem.level));
+        }
+
+        // Update quest progress
+        updateQuestProgress('solve');
+        if (problem?.level === 'Hard') updateQuestProgress('hard');
+      }
+
+      // If re-solving from revise status, count as revise quest
+      if (nextStatus === 'solved' && current.status === 'revise') {
+        updateQuestProgress('revise');
       }
 
       setData(updated);
       persist(updated, newStreak);
+
+      // Return nextStatus so UI can show confidence popup
+      return nextStatus;
+    },
+    [data, streakData, persist, awardXP, updateQuestProgress]
+  );
+
+  // Company tags
+  const updateCompanyTags = useCallback(
+    (topicId: number, problemId: number, tags: string[]) => {
+      const key = getKey(topicId, problemId);
+      const current = data[key] || { status: 'not_started' as ProblemStatus, dateSolved: '', notes: '' };
+      const updated: TrackerData = { ...data, [key]: { ...current, companyTags: tags } };
+      setData(updated);
+      persist(updated, streakData);
+    },
+    [data, streakData, persist]
+  );
+
+  // Timer tracking
+  const updateTimeSpent = useCallback(
+    (topicId: number, problemId: number, ms: number) => {
+      const key = getKey(topicId, problemId);
+      const current = data[key] || { status: 'not_started' as ProblemStatus, dateSolved: '', notes: '' };
+      const updated: TrackerData = { ...data, [key]: { ...current, timeSpentMs: (current.timeSpentMs || 0) + ms } };
+      setData(updated);
+      persist(updated, streakData);
     },
     [data, streakData, persist]
   );
@@ -428,37 +659,64 @@ export function useTrackerState() {
           return hardSolved >= 10;
         })(),
       },
+      { id: 'level_5', title: 'Leveling Up', desc: 'Reach Level 5', icon: '🎮', earned: xpData.level >= 5 },
+      { id: 'level_10', title: 'XP Master', desc: 'Reach Level 10', icon: '💎', earned: xpData.level >= 10 },
+      { id: 'quest_master', title: 'Quest Master', desc: 'Complete all daily quests', icon: '📜', earned: dailyQuests.allCompleted },
     ];
     return earned;
-  }, [globalStats, topicStats, foundationComplete, streakData, data]);
+  }, [globalStats, topicStats, foundationComplete, streakData, data, xpData, dailyQuests]);
+
+  const weaknessReport = useMemo((): WeaknessReport[] => {
+    return topics.map((topic) => {
+      const stats = topicStats.find((s) => s.topicId === topic.id);
+      return { topicId: topic.id, topicName: topic.name, completionPct: stats?.pct || 0, solvedCount: stats?.solved || 0, totalCount: topic.total };
+    }).sort((a, b) => a.completionPct - b.completionPct);
+  }, [topicStats]);
+
+  const generateMockInterview = useCallback((count: number = 3) => {
+    const pool: { topicId: number; topicName: string; problemId: number; problemName: string; level: string; url: string }[] = [];
+    topics.forEach((t) => t.problems.forEach((p) => {
+      const state = data[getKey(t.id, p.id)];
+      if (!state || state.status !== 'solved') {
+        pool.push({ topicId: t.id, topicName: t.name, problemId: p.id, problemName: p.name, level: p.level, url: p.url });
+      }
+    }));
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, count);
+  }, [data]);
+
+  const revisionDueToday = useMemo(() => {
+    const now = Date.now();
+    const due: { topicId: number; problemId: number; problemName: string; daysOverdue: number }[] = [];
+    topics.forEach((t) => t.problems.forEach((p) => {
+      const state = data[getKey(t.id, p.id)];
+      if (state?.status === 'revise') {
+        const overdue = state.nextReviseDate ? Math.max(0, Math.floor((now - new Date(state.nextReviseDate).getTime()) / 86400000)) : 0;
+        due.push({ topicId: t.id, problemId: p.id, problemName: p.name, daysOverdue: overdue });
+      }
+    }));
+    return due;
+  }, [data]);
 
   const resetAll = useCallback(async () => {
     const empty: TrackerData = {};
-    const emptyStreak: StreakData = {
-      currentStreak: 0,
-      longestStreak: 0,
-      lastSolveDate: '',
-      totalDaysActive: 0,
-      solveHistory: {},
-    };
+    const emptyStreak: StreakData = { currentStreak: 0, longestStreak: 0, lastSolveDate: '', totalDaysActive: 0, solveHistory: {} };
+    const emptyXP: XPData = { totalXP: 0, level: 1, xpToNext: 100, xpHistory: {} };
     setData(empty);
     setStreakData(emptyStreak);
+    setXPData(emptyXP);
+    saveLocal(XP_KEY, emptyXP);
+    saveLocal(QUEST_KEY, { date: '', quests: [], allCompleted: false, bonusXPClaimed: false });
     await persist(empty, emptyStreak);
   }, [persist]);
 
   return {
-    data,
-    mounted,
-    syncing,
-    startDate,
-    streakData,
-    achievements,
-    getProblemState,
-    cycleStatus,
-    updateNotes,
-    topicStats,
-    foundationComplete,
-    globalStats,
-    resetAll,
+    data, mounted, syncing, startDate, streakData, achievements,
+    getProblemState, cycleStatus, updateNotes, topicStats, foundationComplete, globalStats, resetAll,
+    xpData, dailyQuests, weaknessReport, revisionDueToday,
+    setSolveConfidence, updateCompanyTags, updateTimeSpent, generateMockInterview, awardXP,
   };
 }
