@@ -232,7 +232,33 @@ export function useTrackerState() {
 
   // Load from localStorage on mount
   useEffect(() => {
-    const loaded = loadLocal<TrackerData>(STORAGE_KEY, {});
+    let loaded = loadLocal<TrackerData>(STORAGE_KEY, {});
+
+    // SRS-aware auto-revise directly on load
+    let hasChanges = false;
+    const now = Date.now();
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    Object.keys(loaded).forEach((key) => {
+      const state = loaded[key];
+      if (state.status === 'solved' && state.dateSolved) {
+        if (state.nextReviseDate) {
+          const reviseTime = new Date(state.nextReviseDate).getTime();
+          if (!isNaN(reviseTime) && now >= reviseTime) {
+            loaded[key] = { ...state, status: 'revise' };
+            hasChanges = true;
+          }
+        } else {
+          const solvedTime = new Date(state.dateSolved).getTime();
+          if (!isNaN(solvedTime) && now - solvedTime >= SEVEN_DAYS_MS) {
+            loaded[key] = { ...state, status: 'revise' };
+            hasChanges = true;
+          }
+        }
+      }
+    });
+    if (hasChanges) {
+      saveLocal(STORAGE_KEY, loaded);
+    }
     setData(loaded);
 
     const streakLoaded = loadLocal<StreakData>(STREAK_KEY, {
@@ -372,41 +398,6 @@ export function useTrackerState() {
     [user, isConfigured, startDate]
   );
 
-  // SRS-aware auto-revise: uses nextReviseDate if set, fallback to 7 days
-  useEffect(() => {
-    if (!mounted || autoReviseRanRef.current) return;
-    autoReviseRanRef.current = true;
-
-    let hasChanges = false;
-    const now = Date.now();
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-    const updatedData = { ...data };
-
-    Object.keys(updatedData).forEach((key) => {
-      const state = updatedData[key];
-      if (state.status === 'solved' && state.dateSolved) {
-        if (state.nextReviseDate) {
-          const reviseTime = new Date(state.nextReviseDate).getTime();
-          if (!isNaN(reviseTime) && now >= reviseTime) {
-            updatedData[key] = { ...state, status: 'revise' };
-            hasChanges = true;
-          }
-        } else {
-          const solvedTime = new Date(state.dateSolved).getTime();
-          if (!isNaN(solvedTime) && now - solvedTime >= SEVEN_DAYS_MS) {
-            updatedData[key] = { ...state, status: 'revise' };
-            hasChanges = true;
-          }
-        }
-      }
-    });
-
-    if (hasChanges) {
-      setData(updatedData);
-      persist(updatedData, streakData);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted]);
 
   const getProblemState = useCallback(
     (topicId: number, problemId: number): ProblemState => {

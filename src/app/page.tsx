@@ -158,6 +158,15 @@ function AchievementsPanel({ achievements, onClose }: {
   );
 }
 
+/* ── Highlight Helper ── */
+function highlightMatch(text: string, query: string) {
+  if (!query) return text;
+  const parts = text.split(new RegExp(`(${query})`, 'gi'));
+  return parts.map((part, i) => 
+    part.toLowerCase() === query.toLowerCase() ? <mark key={i} style={{ background: 'rgba(167,139,250,0.5)', color: 'inherit', borderRadius: 2, padding: '0 2px' }}>{part}</mark> : part
+  );
+}
+
 export default function Home() {
   const { user, signInWithGoogle, signOut, isConfigured } = useAuth();
   const {
@@ -215,6 +224,26 @@ export default function Home() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Auto-expand topics that match search query
+  useEffect(() => {
+    if (searchQuery.trim().length > 0) {
+      const query = searchQuery.toLowerCase();
+      const matchedTopics = new Set<number>();
+      fullTopics.forEach((topic) => {
+        if (topic.problems.some(p => p.name.toLowerCase().includes(query) || p.level.toLowerCase().includes(query) || p.platform.toLowerCase().includes(query))) {
+          matchedTopics.add(topic.id);
+        }
+      });
+      if (matchedTopics.size > 0) {
+        setExpandedTopics(prev => {
+          const next = new Set(prev);
+          matchedTopics.forEach(id => next.add(id));
+          return next;
+        });
+      }
+    }
+  }, [searchQuery, fullTopics]);
 
   const toggleTopic = useCallback((id: number) => {
     setExpandedTopics((prev) => {
@@ -597,7 +626,7 @@ export default function Home() {
         </section>
 
         {/* ─── Topic Sections ─── */}
-        {topics.map((topic) => {
+        {fullTopics.map((topic) => {
           const stats = topicStats.find((s) => s.topicId === topic.id);
           const locked = isTopicLocked(topic.id);
           const expanded = expandedTopics.has(topic.id);
@@ -703,7 +732,7 @@ export default function Home() {
                                       transition: 'color 0.15s',
                                     }}
                                   >
-                                    {problem.name}
+                                    {highlightMatch(problem.name, searchQuery)}
                                     <span style={{ opacity: 0.3, flexShrink: 0 }}><ExternalLink /></span>
                                   </a>
                                   <button onClick={() => setShowHintFor({ topicId: topic.id, problemId: problem.id, problemName: problem.name })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.6, padding: '2px 4px', borderRadius: 4 }} title="Get AI Hint">🤖</button>
