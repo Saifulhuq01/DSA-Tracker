@@ -193,6 +193,7 @@ export default function Home() {
     fullTopics,
     pomodoro,
     addCustomProblem,
+    deleteCustomProblem,
     addPomodoroSession,
     exportData,
     importData
@@ -230,9 +231,11 @@ export default function Home() {
     if (searchQuery.trim().length > 0) {
       const query = searchQuery.toLowerCase();
       const matchedTopics = new Set<number>();
+      let firstMatchId: number | null = null;
       fullTopics.forEach((topic) => {
         if (topic.problems.some(p => p.name.toLowerCase().includes(query) || p.level.toLowerCase().includes(query) || p.platform.toLowerCase().includes(query))) {
           matchedTopics.add(topic.id);
+          if (firstMatchId === null) firstMatchId = topic.id;
         }
       });
       if (matchedTopics.size > 0) {
@@ -241,6 +244,11 @@ export default function Home() {
           matchedTopics.forEach(id => next.add(id));
           return next;
         });
+        
+        // Auto-scroll to the first match
+        if (firstMatchId !== null && topicRefs.current[firstMatchId]) {
+          topicRefs.current[firstMatchId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       }
     }
   }, [searchQuery, fullTopics]);
@@ -712,9 +720,11 @@ export default function Home() {
                           const isSolved = state.status === 'solved';
                           return (
                             <tr key={problem.id}>
-                              <td style={{ textAlign: 'center', fontFamily: 'var(--font-geist-mono)', fontWeight: 600, fontSize: '0.75rem', color: 'var(--text-muted)' }}>{problem.id}</td>
+                              <td style={{ textAlign: 'center', fontFamily: 'var(--font-geist-mono)', fontWeight: 600, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                {problem.linkId === 'Custom' ? 'C' : problem.id}
+                              </td>
                               <td>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                                   <a
                                     href={problem.url}
                                     target="_blank"
@@ -728,14 +738,19 @@ export default function Home() {
                                       fontWeight: 600,
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: 4,
+                                      gap: 6,
                                       transition: 'color 0.15s',
                                     }}
                                   >
                                     {highlightMatch(problem.name, searchQuery)}
                                     <span style={{ opacity: 0.3, flexShrink: 0 }}><ExternalLink /></span>
                                   </a>
-                                  <button onClick={() => setShowHintFor({ topicId: topic.id, problemId: problem.id, problemName: problem.name })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.6, padding: '2px 4px', borderRadius: 4 }} title="Get AI Hint">🤖</button>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                                    <button onClick={() => setShowHintFor({ topicId: topic.id, problemId: problem.id, problemName: problem.name })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.7, padding: '2px' }} title="Get AI Hint">🤖</button>
+                                    {problem.linkId === 'Custom' && (
+                                      <button onClick={() => deleteCustomProblem(problem.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.7, padding: '2px' }} title="Delete Custom Problem">🗑️</button>
+                                    )}
+                                  </div>
                                 </div>
                                 {state.nextReviseDate && state.status === 'solved' && (
                                   <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>

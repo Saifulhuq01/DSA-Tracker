@@ -309,7 +309,7 @@ export function useTrackerState() {
 
     let unsub: (() => void) | undefined;
 
-      const setupSync = async () => {
+    const setupSync = async () => {
       const { doc, setDoc, getDoc, onSnapshot } = await import('firebase/firestore');
       const docRef = doc(db!, 'trackerData', user.uid);
 
@@ -380,9 +380,9 @@ export function useTrackerState() {
           try {
             const { doc, setDoc } = await import('firebase/firestore');
             const docRef = doc(db!, 'trackerData', user.uid);
-            await setDoc(docRef, { 
-              progress: newData, 
-              streak: newStreak, 
+            await setDoc(docRef, {
+              progress: newData,
+              streak: newStreak,
               startDate,
               ...(newCustom && { customProblems: newCustom }),
               ...(newPomodoro && { pomodoro: newPomodoro })
@@ -768,8 +768,25 @@ export function useTrackerState() {
 
   const addCustomProblem = useCallback((problem: Omit<CustomProblem, 'id'>) => {
     setCustomProblems(prev => {
+      // Check if URL already exists in static topics or custom problems
+      const isStaticDuplicate = topics.some(t => t.problems.some(p => p.url === problem.url));
+      const isCustomDuplicate = prev.some(p => p.url === problem.url);
+
+      if (isStaticDuplicate || isCustomDuplicate) {
+        alert('This problem already exists in the tracker!');
+        return prev;
+      }
+
       const newProblem = { ...problem, id: Date.now() };
       const updated = [...prev, newProblem];
+      persist(data, streakData, updated, pomodoro);
+      return updated;
+    });
+  }, [data, streakData, pomodoro, persist]);
+
+  const deleteCustomProblem = useCallback((idToRemove: number) => {
+    setCustomProblems(prev => {
+      const updated = prev.filter(p => p.id !== idToRemove);
       persist(data, streakData, updated, pomodoro);
       return updated;
     });
@@ -826,6 +843,6 @@ export function useTrackerState() {
     getProblemState, cycleStatus, updateNotes, topicStats, foundationComplete, globalStats, resetAll,
     xpData, dailyQuests, weaknessReport, revisionDueToday, pomodoro,
     setSolveConfidence, updateCompanyTags, updateTimeSpent, generateMockInterview, awardXP,
-    addCustomProblem, addPomodoroSession, exportData, importData
+    addCustomProblem, deleteCustomProblem, addPomodoroSession, exportData, importData
   };
 }
