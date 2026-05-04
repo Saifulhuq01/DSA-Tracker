@@ -230,36 +230,49 @@ export function useTrackerState() {
     return quests;
   }
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    let loaded = loadLocal<TrackerData>(STORAGE_KEY, {});
-
-    // SRS-aware auto-revise directly on load
+  // SRS-aware auto-revise helper
+  const applyAutoRevise = useCallback((inputData: TrackerData) => {
     let hasChanges = false;
     const now = Date.now();
+    const todayDateString = new Date().toDateString();
     const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-    Object.keys(loaded).forEach((key) => {
-      const state = loaded[key];
+    const result = { ...inputData };
+
+    Object.keys(result).forEach((key) => {
+      const state = result[key];
       if (state.status === 'solved' && state.dateSolved) {
-        if (state.nextReviseDate) {
-          const reviseTime = new Date(state.nextReviseDate).getTime();
-          if (!isNaN(reviseTime) && now >= reviseTime) {
-            loaded[key] = { ...state, status: 'revise' };
-            hasChanges = true;
-          }
-        } else {
-          const solvedTime = new Date(state.dateSolved).getTime();
-          if (!isNaN(solvedTime) && now - solvedTime >= SEVEN_DAYS_MS) {
-            loaded[key] = { ...state, status: 'revise' };
-            hasChanges = true;
+        const isSolvedToday = new Date(state.dateSolved).toDateString() === todayDateString;
+
+        // Do not flip to revise if they literally just solved it today
+        if (!isSolvedToday) {
+          if (state.nextReviseDate) {
+            const reviseTime = new Date(state.nextReviseDate).getTime();
+            if (!isNaN(reviseTime) && now >= reviseTime) {
+              result[key] = { ...state, status: 'revise' };
+              hasChanges = true;
+            }
+          } else {
+            const solvedTime = new Date(state.dateSolved).getTime();
+            if (!isNaN(solvedTime) && now - solvedTime >= SEVEN_DAYS_MS) {
+              result[key] = { ...state, status: 'revise' };
+              hasChanges = true;
+            }
           }
         }
       }
     });
+    return { updated: result, hasChanges };
+  }, []);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    let loaded = loadLocal<TrackerData>(STORAGE_KEY, {});
+
+    const { updated, hasChanges } = applyAutoRevise(loaded);
     if (hasChanges) {
-      saveLocal(STORAGE_KEY, loaded);
+      saveLocal(STORAGE_KEY, updated);
     }
-    setData(loaded);
+    setData(updated);
 
     const streakLoaded = loadLocal<StreakData>(STREAK_KEY, {
       currentStreak: 0,
@@ -318,7 +331,8 @@ export function useTrackerState() {
         const snap = await getDoc(docRef);
         if (snap.exists()) {
           const cloudData = snap.data() as { progress: TrackerData; streak: StreakData; startDate: string; customProblems?: CustomProblem[]; pomodoro?: PomodoroData };
-          const merged = { ...cloudData.progress, ...data };
+          const { updated: revisedCloudData } = applyAutoRevise(cloudData.progress || {});
+          const merged = { ...revisedCloudData, ...data };
           setData(merged);
           saveLocal(STORAGE_KEY, merged);
           if (cloudData.streak) {
@@ -348,8 +362,9 @@ export function useTrackerState() {
       unsub = onSnapshot(docRef, (snap) => {
         if (snap.exists()) {
           const cloudData = snap.data() as { progress: TrackerData; streak: StreakData };
-          setData(cloudData.progress || {});
-          saveLocal(STORAGE_KEY, cloudData.progress || {});
+          const { updated } = applyAutoRevise(cloudData.progress || {});
+          setData(updated);
+          saveLocal(STORAGE_KEY, updated);
           if (cloudData.streak) {
             setStreakData(cloudData.streak);
             saveLocal(STREAK_KEY, cloudData.streak);
