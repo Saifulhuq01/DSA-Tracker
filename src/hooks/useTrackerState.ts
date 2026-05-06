@@ -470,14 +470,13 @@ export function useTrackerState() {
       const current = data[key];
       if (!current) return;
 
-      const baseInterval = confidence === 'easy' ? 14 : confidence === 'medium' ? 7 : 3;
-      const stage = (current.srsStage || 0);
-      const interval = baseInterval * Math.pow(2, stage);
+      const interval = confidence === 'easy' ? 14 : confidence === 'medium' ? 7 : 3;
+      const nextStage = confidence === 'hard' ? 0 : (current.srsStage || 0) + 1;
       const nextDate = new Date(Date.now() + interval * 86400000).toISOString().split('T')[0];
 
       const updated: TrackerData = {
         ...data,
-        [key]: { ...current, solveConfidence: confidence, srsInterval: interval, srsStage: stage + 1, nextReviseDate: nextDate },
+        [key]: { ...current, solveConfidence: confidence, srsInterval: interval, srsStage: nextStage, nextReviseDate: nextDate },
       };
       setData(updated);
       persist(updated, streakData);

@@ -7,10 +7,12 @@ import {
   ROUND2_RULES, ROUND3_FRAMEWORK, ZohoProblem, DayPlan
 } from '@/data/zohoData';
 import { useTrackerState } from '@/hooks/useTrackerState';
-import { STATUS_LABELS } from '@/data/topics';
+import { STATUS_LABELS, ProblemStatus } from '@/data/topics';
 import { ConfidencePopup, RevisionDueWidget } from '../components';
 
-const TABS = ['Overview','Round 2','Round 3','Round 4','Round 5','30-Day Plan'] as const;
+type ProblemState = { status: ProblemStatus; dateSolved: string; notes: string; nextReviseDate?: string;[k: string]: any };
+
+const TABS = ['Overview', 'Round 2', 'Round 3', 'Round 4', 'Round 5', '30-Day Plan'] as const;
 type Tab = typeof TABS[number];
 
 const diffColor = (d: string) => d === 'Easy' ? '#22c55e' : d === 'Medium' ? '#f59e0b' : d === 'Hard' ? '#ef4444' : '#a78bfa';
@@ -24,14 +26,13 @@ const platformStyle = (p: string) => {
   return { bg: 'rgba(129,140,248,0.1)', color: '#818cf8', border: 'rgba(129,140,248,0.25)' };
 };
 
-function ProblemTable({ problems, title, groupByCategory = false, topicId, setConfidenceTarget }: { problems: ZohoProblem[]; title: string; groupByCategory?: boolean; topicId: number; setConfidenceTarget: (t: {topicId: number, problemId: number} | null) => void }) {
-  const { getProblemState, cycleStatus } = useTrackerState();
+function ProblemTable({ problems, title, groupByCategory = false, topicId, setConfidenceTarget, getProblemState, cycleStatus }: { problems: ZohoProblem[]; title: string; groupByCategory?: boolean; topicId: number; setConfidenceTarget: (t: { topicId: number, problemId: number } | null) => void; getProblemState: (topicId: number, problemId: number) => ProblemState; cycleStatus: (topicId: number, problemId: number) => ProblemStatus }) {
 
   const renderTable = (problemList: ZohoProblem[]) => (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
         <thead>
-          <tr>{['#','Problem','Category','Status','Date','Key Insight','Diff','Resources'].map(h => (
+          <tr>{['#', 'Problem', 'Category', 'Status', 'Date', 'Key Insight', 'Diff', 'Resources'].map(h => (
             <th key={h} style={{ background: '#12121a', color: '#8888a0', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #303045', whiteSpace: 'nowrap' }}>{h}</th>
           ))}</tr>
         </thead>
@@ -42,9 +43,19 @@ function ProblemTable({ problems, title, groupByCategory = false, topicId, setCo
               <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontWeight: 600, fontSize: '0.8rem', color: '#e8e8f0' }}>
                 {p.links?.find(l => l.platform === 'LC') ? (
                   <a href={p.links.find(l => l.platform === 'LC')!.url} target="_blank" rel="noopener noreferrer" style={{ color: '#e8e8f0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {p.name} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    {p.name} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
                   </a>
                 ) : p.name}
+                {getProblemState(topicId, p.id).nextReviseDate && getProblemState(topicId, p.id).status === 'solved' && (
+                  <span style={{ fontSize: '0.58rem', color: '#22c55e', display: 'block', marginTop: 2 }}>
+                    📅 Revise: {getProblemState(topicId, p.id).nextReviseDate}
+                  </span>
+                )}
+                {getProblemState(topicId, p.id).nextReviseDate && getProblemState(topicId, p.id).status === 'revise' && (
+                  <span style={{ fontSize: '0.58rem', color: '#ef4444', display: 'block', marginTop: 2 }}>
+                    🔔 Overdue — revise now!
+                  </span>
+                )}
               </td>
               <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
                 <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.68rem', fontWeight: 600, background: 'rgba(255,255,255,0.04)', color: '#8888a0', border: '1px solid #252535' }}>{p.category}</span>
@@ -159,7 +170,7 @@ function DayPlanCard({ plan }: { plan: DayPlan }) {
 export default function ZohoInterviewPage() {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [confidenceTarget, setConfidenceTarget] = useState<{ topicId: number; problemId: number } | null>(null);
-  const { setSolveConfidence, data } = useTrackerState();
+  const { setSolveConfidence, data, getProblemState, cycleStatus } = useTrackerState();
 
   const zohoRevisionDue = useMemo(() => {
     const now = Date.now();
@@ -265,7 +276,7 @@ export default function ZohoInterviewPage() {
               <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)' }}>3000 → 60 → 11</span>
             </div>
             <InfoCard title="Non-Negotiable Rules" icon="⚠️" items={ROUND2_RULES} />
-            <ProblemTable problems={ROUND2_PROBLEMS} title="Problem Bank — Confirmed Zoho Questions" groupByCategory={true} topicId={202} setConfidenceTarget={setConfidenceTarget} />
+            <ProblemTable problems={ROUND2_PROBLEMS} title="Problem Bank — Confirmed Zoho Questions" groupByCategory={true} topicId={202} setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus} />
           </div>
         )}
 
@@ -277,7 +288,7 @@ export default function ZohoInterviewPage() {
               <p style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 600, marginTop: 6 }}>⚡ Silent candidates are eliminated even if code is correct. TALK CONSTANTLY.</p>
             </div>
             <InfoCard title="The OOP Framework — Every Time" icon="🏗️" items={ROUND3_FRAMEWORK} />
-            <ProblemTable problems={ROUND3_APPS} title="Application Bank — Verified Zoho Problem Types" topicId={203} setConfidenceTarget={setConfidenceTarget} />
+            <ProblemTable problems={ROUND3_APPS} title="Application Bank — Verified Zoho Problem Types" topicId={203} setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus} />
             <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 12, padding: '18px 22px' }}>
               <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#a78bfa', marginBottom: 8 }}>🏆 The Winning Formula</h4>
               <p style={{ fontSize: '0.78rem', color: '#8888a0', lineHeight: 1.7 }}>
@@ -301,7 +312,7 @@ export default function ZohoInterviewPage() {
               '1 DSA question — explain APPROACH ONLY. Speak before writing.',
               'Your Apache Fineract patch: they WILL probe this. Know every detail.'
             ]} />
-            <ProblemTable problems={ROUND4_QUESTIONS} title="Full Question Bank" topicId={204} setConfidenceTarget={setConfidenceTarget} />
+            <ProblemTable problems={ROUND4_QUESTIONS} title="Full Question Bank" topicId={204} setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus} />
             <InfoCard title="Fineract Pitch — Say in 90 Seconds" icon="🛡️" items={FINERACT_NARRATIVE} />
           </div>
         )}
@@ -320,7 +331,7 @@ export default function ZohoInterviewPage() {
               'They WILL ask about your layoff. Have a clean narrative.',
               "Know Zoho: Sridhar Vembu, Chennai + Tenkasi, bootstrapped, 55+ products."
             ]} />
-            <ProblemTable problems={ROUND5_QUESTIONS} title="HR Questions + How to Answer" topicId={205} setConfidenceTarget={setConfidenceTarget} />
+            <ProblemTable problems={ROUND5_QUESTIONS} title="HR Questions + How to Answer" topicId={205} setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus} />
             <InfoCard title="Layoff Narrative — Say This Exactly" icon="💬" items={LAYOFF_NARRATIVE} />
           </div>
         )}
