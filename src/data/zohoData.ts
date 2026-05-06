@@ -264,3 +264,25 @@ export const ROUND3_FRAMEWORK = [
   "Step 4: TALK constantly. Explain every decision: 'I'm using a HashMap here because...'",
   "Step 5: When it works, immediately say 'I can optimize X by doing Y' — show you think ahead.",
 ];
+
+export const ZOHO_REVIEWS = [
+  {
+    candidate: "SDE-1 Candidate (Chennai)",
+    date: "Feb 2024",
+    experience: "Round 2 had 'Trapping Rain Water' and 'Stock Span'. They focus heavily on stack usage. Round 3 was 'Railway Reservation System'. They expect full OOP like Train, Station, Seat, Passenger classes. Narrating my thought process while coding was the key. Zoho values transparency over raw speed.",
+    rating: 5
+  },
+  {
+    candidate: "SDE-2 Candidate (Chennai)",
+    date: "Nov 2023",
+    experience: "Round 4 was deep. They asked about Java HashMap internals (Java 8 treeify threshold) and why I used a specific index in my project. Be prepared for resume deep-dives. Zoho Chennai is very particular about CS fundamentals like ACID and Deadlock conditions.",
+    rating: 4
+  },
+  {
+    candidate: "Fresh Graduate (Off-campus)",
+    date: "Jan 2024",
+    experience: "Round 2 was medium difficulty. 6 questions. 4 were easy-medium, 2 were hard. I solved 5. Round 3 was 'Library Management'. Focus on class relationships. Don't use static methods everywhere.",
+    rating: 5
+  }
+];
+

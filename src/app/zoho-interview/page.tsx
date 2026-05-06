@@ -1,23 +1,37 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   ZOHO_OVERVIEW, ROUND2_PROBLEMS, ROUND3_APPS, ROUND4_QUESTIONS,
   ROUND5_QUESTIONS, THIRTY_DAY_PLAN, FINERACT_NARRATIVE, LAYOFF_NARRATIVE,
-  ROUND2_RULES, ROUND3_FRAMEWORK, ZohoProblem, DayPlan
+  ROUND2_RULES, ROUND3_FRAMEWORK, ZOHO_REVIEWS, ZohoProblem, DayPlan
 } from '@/data/zohoData';
 import { useTrackerState } from '@/hooks/useTrackerState';
 import { STATUS_LABELS, ProblemStatus } from '@/data/topics';
-import { ConfidencePopup, RevisionDueWidget } from '../components';
+import { 
+  ConfidencePopup, RevisionDueWidget, ProblemTimer, 
+  CompanyTagInput, RichNotesInput, AIHintModal 
+} from '../components';
 
-type ProblemState = { status: ProblemStatus; dateSolved: string; notes: string; nextReviseDate?: string;[k: string]: any };
+type ProblemState = { status: ProblemStatus; dateSolved: string; notes: string; nextReviseDate?: string; companyTags?: string[]; timeSpentMs?: number; [k: string]: any };
 
-const TABS = ['Overview', 'Round 2', 'Round 3', 'Round 4', 'Round 5', '30-Day Plan'] as const;
+const TABS = ['Overview', 'Round 2', 'Round 3', 'Round 4', 'Round 5', '30-Day Plan', 'Reviews'] as const;
 type Tab = typeof TABS[number];
 
 const diffColor = (d: string) => d === 'Easy' ? '#22c55e' : d === 'Medium' ? '#f59e0b' : d === 'Hard' ? '#ef4444' : '#a78bfa';
 const dayTypeColor = (t: string) => t === 'dsa' ? 'rgba(167,139,250,0.1)' : t === 'revision' ? 'rgba(59,130,246,0.12)' : t === 'oop' ? 'rgba(168,85,247,0.12)' : 'rgba(245,158,11,0.12)';
 const dayTypeBorder = (t: string) => t === 'dsa' ? 'rgba(167,139,250,0.25)' : t === 'revision' ? 'rgba(59,130,246,0.3)' : t === 'oop' ? 'rgba(168,85,247,0.3)' : 'rgba(245,158,11,0.3)';
+
+const highlightStyles = `
+  @keyframes highlightRow {
+    0% { background: rgba(167, 139, 250, 0); }
+    30% { background: rgba(167, 139, 250, 0.15); }
+    100% { background: rgba(167, 139, 250, 0); }
+  }
+  .highlight-row {
+    animation: highlightRow 2s ease-out;
+  }
+`;
 
 const platformStyle = (p: string) => {
   if (p === 'LC') return { bg: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: 'rgba(245,158,11,0.25)' };
@@ -26,73 +40,89 @@ const platformStyle = (p: string) => {
   return { bg: 'rgba(129,140,248,0.1)', color: '#818cf8', border: 'rgba(129,140,248,0.25)' };
 };
 
-function ProblemTable({ problems, title, groupByCategory = false, topicId, setConfidenceTarget, getProblemState, cycleStatus }: { problems: ZohoProblem[]; title: string; groupByCategory?: boolean; topicId: number; setConfidenceTarget: (t: { topicId: number, problemId: number } | null) => void; getProblemState: (topicId: number, problemId: number) => ProblemState; cycleStatus: (topicId: number, problemId: number) => ProblemStatus }) {
+function ProblemTable({ 
+  problems, title, groupByCategory = false, topicId, 
+  setConfidenceTarget, getProblemState, cycleStatus,
+  updateNotes, updateTimeSpent, updateCompanyTags, setHintProblem
+}: { 
+  problems: ZohoProblem[]; title: string; groupByCategory?: boolean; topicId: number; 
+  setConfidenceTarget: (t: { topicId: number, problemId: number } | null) => void; 
+  getProblemState: (topicId: number, problemId: number) => ProblemState; 
+  cycleStatus: (topicId: number, problemId: number) => ProblemStatus;
+  updateNotes: (topicId: number, problemId: number, notes: string) => void;
+  updateTimeSpent: (topicId: number, problemId: number, ms: number) => void;
+  updateCompanyTags: (topicId: number, problemId: number, tags: string[]) => void;
+  setHintProblem: (name: string) => void;
+}) {
 
   const renderTable = (problemList: ZohoProblem[]) => (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
         <thead>
-          <tr>{['#', 'Problem', 'Category', 'Status', 'Date', 'Key Insight', 'Diff', 'Resources'].map(h => (
+          <tr>{['#', 'Problem', 'Diff', 'Status', 'Date', 'Timer', 'Tags', 'Notes'].map(h => (
             <th key={h} style={{ background: '#12121a', color: '#8888a0', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #303045', whiteSpace: 'nowrap' }}>{h}</th>
           ))}</tr>
         </thead>
         <tbody>
-          {problemList.map(p => (
-            <tr key={p.id} style={{ transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(167,139,250,0.03)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.75rem', color: '#a78bfa' }}>{p.id}</td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontWeight: 600, fontSize: '0.8rem', color: '#e8e8f0' }}>
-                {p.links?.find(l => l.platform === 'LC') ? (
-                  <a href={p.links.find(l => l.platform === 'LC')!.url} target="_blank" rel="noopener noreferrer" style={{ color: '#e8e8f0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {p.name} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
-                  </a>
-                ) : p.name}
-                {getProblemState(topicId, p.id).nextReviseDate && getProblemState(topicId, p.id).status === 'solved' && (
-                  <span style={{ fontSize: '0.58rem', color: '#22c55e', display: 'block', marginTop: 2 }}>
-                    📅 Revise: {getProblemState(topicId, p.id).nextReviseDate}
-                  </span>
-                )}
-                {getProblemState(topicId, p.id).nextReviseDate && getProblemState(topicId, p.id).status === 'revise' && (
-                  <span style={{ fontSize: '0.58rem', color: '#ef4444', display: 'block', marginTop: 2 }}>
-                    🔔 Overdue — revise now!
-                  </span>
-                )}
-              </td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
-                <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.68rem', fontWeight: 600, background: 'rgba(255,255,255,0.04)', color: '#8888a0', border: '1px solid #252535' }}>{p.category}</span>
-              </td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', textAlign: 'center' }}>
-                <button className={`status-btn status-${getProblemState(topicId, p.id).status}`} onClick={() => {
-                  const next = cycleStatus(topicId, p.id);
-                  if (next === 'solved') setConfidenceTarget({ topicId, problemId: p.id });
-                }} title="Click to cycle status" style={{ padding: '4px 8px', fontSize: '0.65rem' }}>
-                  {STATUS_LABELS[getProblemState(topicId, p.id).status]}
-                </button>
-              </td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontFamily: 'monospace', fontSize: '0.72rem', color: getProblemState(topicId, p.id).dateSolved ? '#e8e8f0' : '#555570' }}>
-                {getProblemState(topicId, p.id).dateSolved || '—'}
-              </td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontSize: '0.75rem', color: '#8888a0', maxWidth: 280 }}>{p.insight}</td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
-                <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.68rem', fontWeight: 700, color: diffColor(p.difficulty), background: `${diffColor(p.difficulty)}15`, border: `1px solid ${diffColor(p.difficulty)}30` }}>{p.difficulty}</span>
-              </td>
-              <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
-                {p.links && p.links.length > 0 ? (
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    {p.links.map((link, i) => {
-                      const s = platformStyle(link.platform);
-                      return (
-                        <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{ padding: '2px 7px', borderRadius: 4, fontSize: '0.62rem', fontWeight: 700, background: s.bg, color: s.color, border: `1px solid ${s.border}`, textDecoration: 'none', whiteSpace: 'nowrap', transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                          {link.platform === 'YT' && '▶ '}{link.label}
+          {problemList.map(p => {
+            const state = getProblemState(topicId, p.id);
+            return (
+              <tr key={p.id} id={`prob-${topicId}-${p.id}`} style={{ transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(167,139,250,0.03)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.75rem', color: '#a78bfa' }}>{p.id}</td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontWeight: 600, fontSize: '0.8rem', color: '#e8e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ flex: 1 }}>
+                      {p.links?.find(l => l.platform === 'LC') ? (
+                        <a href={p.links.find(l => l.platform === 'LC')!.url} target="_blank" rel="noopener noreferrer" style={{ color: '#e8e8f0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {p.name} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
                         </a>
-                      );
-                    })}
+                      ) : p.name}
+                      <p style={{ fontSize: '0.65rem', color: '#555570', marginTop: 2 }}>{p.insight}</p>
+                      {state.nextReviseDate && state.status === 'solved' && (
+                        <span style={{ fontSize: '0.58rem', color: '#22c55e', display: 'block', marginTop: 2 }}>
+                          📅 Revise: {state.nextReviseDate}
+                        </span>
+                      )}
+                      {state.nextReviseDate && state.status === 'revise' && (
+                        <span style={{ fontSize: '0.58rem', color: '#ef4444', display: 'block', marginTop: 2 }}>
+                          🔔 Overdue — revise now!
+                        </span>
+                      )}
+                    </div>
+                    <button onClick={() => setHintProblem(p.name)} style={{ background: 'none', border: 'none', color: '#8888a0', cursor: 'pointer', opacity: 0.5 }}>🤖</button>
                   </div>
-                ) : (
-                  <span style={{ fontSize: '0.62rem', color: '#555570', fontStyle: 'italic' }}>Resources not found</span>
-                )}
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
+                  <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.68rem', fontWeight: 700, color: diffColor(p.difficulty), background: `${diffColor(p.difficulty)}15`, border: `1px solid ${diffColor(p.difficulty)}30` }}>{p.difficulty}</span>
+                </td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', textAlign: 'center' }}>
+                  <button className={`status-btn status-${state.status}`} onClick={() => {
+                    const next = cycleStatus(topicId, p.id);
+                    if (next === 'solved') setConfidenceTarget({ topicId, problemId: p.id });
+                  }} title="Click to cycle status" style={{ padding: '4px 8px', fontSize: '0.65rem' }}>
+                    {STATUS_LABELS[state.status]}
+                  </button>
+                </td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontFamily: 'monospace', fontSize: '0.72rem', color: state.dateSolved ? '#e8e8f0' : '#555570' }}>
+                  {state.dateSolved || '—'}
+                </td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', textAlign: 'center' }}>
+                  <ProblemTimer onStop={(ms) => updateTimeSpent(topicId, p.id, ms)} />
+                  {state.timeSpentMs ? (
+                    <span style={{ fontSize: '0.55rem', color: '#555570', display: 'block' }}>
+                      {Math.floor(state.timeSpentMs / 60000)}m
+                    </span>
+                  ) : null}
+                </td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
+                  <CompanyTagInput tags={state.companyTags || []} onChange={(tags) => updateCompanyTags(topicId, p.id, tags)} />
+                </td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', minWidth: 200 }}>
+                  <RichNotesInput initialNotes={state.notes || ''} onSave={(val) => updateNotes(topicId, p.id, val)} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -170,7 +200,41 @@ function DayPlanCard({ plan }: { plan: DayPlan }) {
 export default function ZohoInterviewPage() {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [confidenceTarget, setConfidenceTarget] = useState<{ topicId: number; problemId: number } | null>(null);
-  const { setSolveConfidence, data, getProblemState, cycleStatus } = useTrackerState();
+  const [search, setSearch] = useState('');
+  const [hintProblem, setHintProblem] = useState<string | null>(null);
+  const { 
+    setSolveConfidence, data, getProblemState, cycleStatus,
+    updateNotes, updateTimeSpent, updateCompanyTags
+  } = useTrackerState();
+
+  // Search auto-scroll
+  useEffect(() => {
+    if (!search || search.length < 3) return;
+    const s = search.toLowerCase();
+    const allProbs = [...ROUND2_PROBLEMS, ...ROUND3_APPS, ...ROUND4_QUESTIONS, ...ROUND5_QUESTIONS];
+    const match = allProbs.find(p => p.name.toLowerCase().includes(s));
+    if (match) {
+      // Find which tab it belongs to
+      if (ROUND2_PROBLEMS.includes(match)) setActiveTab('Round 2');
+      else if (ROUND3_APPS.includes(match)) setActiveTab('Round 3');
+      else if (ROUND4_QUESTIONS.includes(match)) setActiveTab('Round 4');
+      else if (ROUND5_QUESTIONS.includes(match)) setActiveTab('Round 5');
+
+      setTimeout(() => {
+        const id = match.id;
+        const tid = ROUND2_PROBLEMS.includes(match) ? 202 : 
+                    ROUND3_APPS.includes(match) ? 203 : 
+                    ROUND4_QUESTIONS.includes(match) ? 204 : 205;
+        const el = document.getElementById(`prob-${tid}-${id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.remove('highlight-row');
+          void el.offsetWidth; // trigger reflow
+          el.classList.add('highlight-row');
+        }
+      }, 300);
+    }
+  }, [search]);
 
   const zohoRevisionDue = useMemo(() => {
     const now = Date.now();
@@ -193,6 +257,7 @@ export default function ZohoInterviewPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#e8e8f0' }}>
+      <style>{highlightStyles}</style>
       {/* Header */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #252535', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -206,9 +271,21 @@ export default function ZohoInterviewPage() {
             <p style={{ fontSize: '0.65rem', color: '#555570' }}>Verified 2023–2024 Chennai Experiences</p>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: '0.7rem', color: '#555570', padding: '4px 10px', borderRadius: 6, border: '1px solid #252535' }}>📋 Rounds 2–5</span>
-          <span style={{ fontSize: '0.7rem', color: '#555570', padding: '4px 10px', borderRadius: 6, border: '1px solid #252535' }}>📅 30-Day Plan</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ position: 'relative' }}>
+            <input 
+              type="text" 
+              placeholder="Search problems..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #252535', borderRadius: 8, padding: '8px 12px 8px 32px', fontSize: '0.75rem', color: '#e8e8f0', width: 220, transition: 'all 0.15s' }} 
+            />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555570" strokeWidth="2.5" style={{ position: 'absolute', left: 10, top: 10 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: '0.7rem', color: '#555570', padding: '4px 10px', borderRadius: 6, border: '1px solid #252535' }}>📋 Rounds 2–5</span>
+            <span style={{ fontSize: '0.7rem', color: '#555570', padding: '4px 10px', borderRadius: 6, border: '1px solid #252535' }}>📅 30-Day Plan</span>
+          </div>
         </div>
       </header>
 
@@ -276,7 +353,11 @@ export default function ZohoInterviewPage() {
               <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)' }}>3000 → 60 → 11</span>
             </div>
             <InfoCard title="Non-Negotiable Rules" icon="⚠️" items={ROUND2_RULES} />
-            <ProblemTable problems={ROUND2_PROBLEMS} title="Problem Bank — Confirmed Zoho Questions" groupByCategory={true} topicId={202} setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus} />
+            <ProblemTable 
+              problems={ROUND2_PROBLEMS} title="Problem Bank — Confirmed Zoho Questions" groupByCategory={true} topicId={202} 
+              setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+            />
           </div>
         )}
 
@@ -288,7 +369,11 @@ export default function ZohoInterviewPage() {
               <p style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 600, marginTop: 6 }}>⚡ Silent candidates are eliminated even if code is correct. TALK CONSTANTLY.</p>
             </div>
             <InfoCard title="The OOP Framework — Every Time" icon="🏗️" items={ROUND3_FRAMEWORK} />
-            <ProblemTable problems={ROUND3_APPS} title="Application Bank — Verified Zoho Problem Types" topicId={203} setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus} />
+            <ProblemTable 
+              problems={ROUND3_APPS} title="Application Bank — Verified Zoho Problem Types" topicId={203} 
+              setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+            />
             <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 12, padding: '18px 22px' }}>
               <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#a78bfa', marginBottom: 8 }}>🏆 The Winning Formula</h4>
               <p style={{ fontSize: '0.78rem', color: '#8888a0', lineHeight: 1.7 }}>
@@ -312,7 +397,11 @@ export default function ZohoInterviewPage() {
               '1 DSA question — explain APPROACH ONLY. Speak before writing.',
               'Your Apache Fineract patch: they WILL probe this. Know every detail.'
             ]} />
-            <ProblemTable problems={ROUND4_QUESTIONS} title="Full Question Bank" topicId={204} setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus} />
+            <ProblemTable 
+              problems={ROUND4_QUESTIONS} title="Full Question Bank" topicId={204} 
+              setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+            />
             <InfoCard title="Fineract Pitch — Say in 90 Seconds" icon="🛡️" items={FINERACT_NARRATIVE} />
           </div>
         )}
@@ -331,7 +420,11 @@ export default function ZohoInterviewPage() {
               'They WILL ask about your layoff. Have a clean narrative.',
               "Know Zoho: Sridhar Vembu, Chennai + Tenkasi, bootstrapped, 55+ products."
             ]} />
-            <ProblemTable problems={ROUND5_QUESTIONS} title="HR Questions + How to Answer" topicId={205} setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus} />
+            <ProblemTable 
+              problems={ROUND5_QUESTIONS} title="HR Questions + How to Answer" topicId={205} 
+              setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+            />
             <InfoCard title="Layoff Narrative — Say This Exactly" icon="💬" items={LAYOFF_NARRATIVE} />
           </div>
         )}
@@ -361,6 +454,34 @@ export default function ZohoInterviewPage() {
             </div>
           </div>
         )}
+
+        {activeTab === 'Reviews' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 12, padding: '16px 20px', marginBottom: 4 }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#a78bfa' }}>Verified Chennai Experience Reviews</h2>
+              <p style={{ fontSize: '0.72rem', color: '#8888a0' }}>Real feedback from candidates who interviewed at Zoho Chennai in 2023–2024</p>
+            </div>
+            {ZOHO_REVIEWS.map((rev, i) => (
+              <div key={i} style={{ background: '#16161f', border: '1px solid #252535', borderRadius: 12, padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#e8e8f0' }}>{rev.candidate}</h4>
+                    <p style={{ fontSize: '0.65rem', color: '#555570' }}>Interviewed in {rev.date}</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    {Array.from({ length: 5 }).map((_, si) => (
+                      <span key={si} style={{ color: si < rev.rating ? '#f59e0b' : '#303045', fontSize: '0.8rem' }}>★</span>
+                    ))}
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: '#8888a0', lineHeight: 1.6, fontStyle: 'italic' }}>
+                  "{rev.experience}"
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {confidenceTarget && (
           <ConfidencePopup
             onSelect={(confidence) => {
@@ -369,6 +490,10 @@ export default function ZohoInterviewPage() {
             }}
             onClose={() => setConfidenceTarget(null)}
           />
+        )}
+
+        {hintProblem && (
+          <AIHintModal problemName={hintProblem} onClose={() => setHintProblem(null)} />
         )}
       </main>
 
