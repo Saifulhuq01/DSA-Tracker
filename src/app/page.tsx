@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import { topics, STATUS_LABELS, ProblemStatus } from '@/data/topics';
 import { useTrackerState } from '@/hooks/useTrackerState';
 import { useAuth } from '@/context/AuthContext';
@@ -462,6 +463,9 @@ export default function Home() {
 
         {/* Bottom actions */}
         <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Link href="/zoho-interview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg, rgba(167,139,250,0.15), rgba(99,102,241,0.12))', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', transition: 'all 0.2s', boxShadow: '0 0 16px rgba(167,139,250,0.08)' }}>
+            🏢 Zoho Interview
+          </Link>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
               onClick={() => setShowAchievements(true)}
