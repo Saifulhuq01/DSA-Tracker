@@ -59,7 +59,7 @@ function ProblemTable({
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
         <thead>
-          <tr>{['#', 'Problem', 'Diff', 'Status', 'Date', 'Timer', 'Tags', 'Notes'].map(h => (
+          <tr>{['#', 'Problem', 'Diff', 'Status', 'Date', 'Timer', 'Tags', 'Resources', 'Notes'].map(h => (
             <th key={h} style={{ background: '#12121a', color: '#8888a0', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #303045', whiteSpace: 'nowrap' }}>{h}</th>
           ))}</tr>
         </thead>
@@ -116,6 +116,22 @@ function ProblemTable({
                 </td>
                 <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
                   <CompanyTagInput tags={state.companyTags || []} onChange={(tags) => updateCompanyTags(topicId, p.id, tags)} />
+                </td>
+                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
+                  {p.links && p.links.length > 0 ? (
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {p.links.map((link, i) => {
+                        const s = platformStyle(link.platform);
+                        return (
+                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{ padding: '2px 7px', borderRadius: 4, fontSize: '0.62rem', fontWeight: 700, background: s.bg, color: s.color, border: `1px solid ${s.border}`, textDecoration: 'none', whiteSpace: 'nowrap', transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            {link.platform === 'YT' && '▶ '}{link.label}
+                          </a>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '0.62rem', color: '#555570', fontStyle: 'italic' }}>No links</span>
+                  )}
                 </td>
                 <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', minWidth: 200 }}>
                   <RichNotesInput initialNotes={state.notes || ''} onSave={(val) => updateNotes(topicId, p.id, val)} />
