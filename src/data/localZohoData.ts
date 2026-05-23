@@ -24,6 +24,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input: 1 0 1 0 1 0 1 1 1 Output: 0 0 0 0 0 0 1 0 1 Explanation: For the cell mat[0][0] which is 1, i...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/a-boolean-matrix-question/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/set-matrix-zeroes/", "platform": "LC" }
+    ],
     "description": "Input:\n1 0 1\n0 1 0\n1 1 1\nOutput:\n0 0 0\n0 0 0\n1 0 1\nExplanation:\nFor the cell mat[0][0] which is 1, its adjacent cells (mat[0][1] and mat[1][0]) are modified to 0.\nFor the cell mat[1][1] which is 1, its adjacent cells (mat[0][1], mat[1][0], mat[1][2], and mat[2][1]) are modified to 0.\nThe modification is not applied to the cell mat[2][2] as it doesn't have all four adjacent cells."
   },
   {
@@ -32,6 +36,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Example : Input: A[] = {-7, 1, 5, 2, -4, 3, 0} Output: 3 3 is an equilibrium index, because: A[0] + ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/equilibrium-index-of-an-array/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/find-pivot-index/", "platform": "LC" }
+    ],
     "description": "Example :\nInput: A[] = {-7, 1, 5, 2, -4, 3, 0}\nOutput: 3\n3 is an equilibrium index, because:\nA[0] + A[1] + A[2] = A[4] + A[5] + A[6]\nInput: A[] = {1, 2, 3}\nOutput: -1"
   },
   {
@@ -40,6 +48,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Given a 2D screen, location of a pixel in the screen and a color, replace color of the given pixel a...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/flood-fill-algorithm/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/flood-fill/", "platform": "LC" }
+    ],
     "description": "Given a 2D screen, location of a pixel in the screen and a color, replace color of the given pixel and all adjacent same colored pixels with the given color.\nExample:\nInput:\n       screen[M][N] = {{1, 1, 1, 1, 1, 1, 1, 1},\n                      {1, 1, 1, 1, 1, 1, 0, 0},\n                      {1, 0, 0, 1, 1, 0, 1, 1},\n                      {1, 2, 2, 2, 2, 0, 1, 0},\n                      {1, 1, 1, 2, 2, 0, 1, 0},\n                      {1, 1, 1, 2, 2, 2, 2, 0},\n                      {1, 1, 1, 1, 1, 2, 1, 1},\n                      {1, 1, 1, 1, 1, 2, 2, 1},\n                      };\n    x = 4, y = 4, newColor = 3\nThe values in the given 2D screen indicate colors of the pixels.\nx and y are coordinates of the brush, newColor is the color that\nshould replace the previous color on screen[x][y] and all surrounding\npixels with same color.\n\nOutput:\nScreen should be changed to following.\n       screen[M][N] = {{1, 1, 1, 1, 1, 1, 1, 1},\n                      {1, 1, 1, 1, 1, 1, 0, 0},\n                      {1, 0, 0, 1, 1, 0, 1, 1},\n                      {1, 3, 3, 3, 3, 0, 1, 0},\n                      {1, 1, 1, 3, 3, 0, 1, 0},\n                      {1, 1, 1, 3, 3, 3, 3, 0},\n                      {1, 1, 1, 1, 1, 3, 1, 1},\n                      {1, 1, 1, 1, 1, 3, 3, 1},\n                      };",
     "code": "import java.util.*;\npublic class New {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int i = sc.nextInt();\n        System.out.println(\"pradeep\"+i);\n    }\n}\n"
   },
@@ -49,6 +61,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Example: Input:  1 2 3 4 5 6 7 8 9 Output:  1 2 4 7 5 3 6 8 9",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/diagonal-traverse/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/print-matrix-zag-zag-fashion/", "platform": "GFG" }
+    ],
     "description": "Example:\nInput: \n1 2 3\n4 5 6\n7 8 9\nOutput: \n1 2 4 7 5 3 6 8 9",
     "code": "// 5.\npublic class ZigZagMatrix {\n    public static void printZigZag(int[][] matrix) {\n        int n = matrix.length;        // Rows\n        int m = matrix[0].length;     // Columns\n\n        for (int d = 0; d < n + m - 1; d++) {\n            // If even, move upwards (↗)\n            if (d % 2 == 0) {\n                int row = Math.min(d, n - 1);\n                int col = d - row;\n                while (row >= 0 && col < m) {\n                    System.out.print(matrix[row][col] + \" \");\n                    row--;\n                    col++;\n                }\n            }\n            // If odd, move downwards (↙)\n            else {\n                int col = Math.min(d, m - 1);\n                int row = d - col;\n                while (col >= 0 && row < n) {\n                    System.out.print(matrix[row][col] + \" \");\n                    row++;\n                    col--;\n                }\n            }\n        }\n    }\n\n    public static void main(String[] args) {\n        int[][] matrix = {\n            {1, 2, 3},\n            {4, 5, 6},\n            {7, 8, 9}\n        };\n        printZigZag(matrix);\n    }\n}\n"
   },
@@ -58,6 +74,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Testcase 1: Input: Java1234 Output: Javb1234 (Remove the second ‘a’ as it is duplicated) Testcase 2:...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/remove-duplicates-from-a-given-string/", "platform": "GFG" }
+    ],
     "description": "Testcase 1:\nInput: Java1234\nOutput: Javb1234 (Remove the second ‘a’ as it is duplicated)\nTestcase 2:\nInput: Python1223:\nOutput: Python1234 (Replace the second 2 with 3, and replace 3 with 4 as 3 is replaced for the duplicated 2)\nTestcase 3:\nInput: aBuzZ9900\nOutput: aBuzC9012\n(Replace the second ‘Z’ with ‘C’ as ‘a’ and ‘B’ are already there in the String. Replace with capital C as the letter to be replaced is capital Z. The second 9 turns out to be zero and the zero turns out to ‘1’ and the second zero turns out to ‘2’)"
   },
   {
@@ -66,6 +85,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "example: Input : Version1 4.8.2 Version2 4.8.4 Output: upgraded, Input : Version1 4.0.2 Version2 4.8...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/compare-version-numbers/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/compare-two-version-numbers/", "platform": "GFG" }
+    ],
     "description": "example: Input : Version1 4.8.2 Version2 4.8.4 Output: upgraded, Input : Version1 4.0.2 Version2 4.8.4 Output: downgraded"
   },
   {
@@ -74,6 +97,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "example: Input: {1, 2, 3, 4, 5} N=6 Output: {1, 2, 3}, {1, 5}, {2, 4}",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/perfect-sum-problem/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/combination-sum/", "platform": "LC" }
+    ],
     "description": "example: Input: {1, 2, 3, 4, 5} N=6 Output: {1, 2, 3}, {1, 5}, {2, 4}"
   },
   {
@@ -82,6 +109,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "example: String1 = Input: This is a test String only String2 = st Output: This is a only String test",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/reverse-words-in-a-given-string/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/reverse-words-in-a-string/", "platform": "LC" }
+    ],
     "description": "example: String1 = Input: This is a test String only String2 = st Output: This is a only String test"
   },
   {
@@ -90,6 +121,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Money: Total money one has to spend. Price: price per chocolate. wrappers: minimum number of wrapper...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/chocolate-distribution-problem/", "platform": "GFG" }
+    ],
     "description": "Money: Total money one has to spend.\nPrice: price per chocolate.\nwrappers: minimum number of wrappers for exchange choco: number of chocolate for wrappers.\nMax visit: Maximum number of times one can visit the shop.(if zero consider it infinite)\nexample: input: Money:40 Price:1 wrappers:3 choco:1 Max visit:1 Output: total chocolate can eat: 53 wrappers left in hand:14"
   },
   {
@@ -115,6 +149,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input: {1, 2, 3, 4, 5, 6, 7} output: {7, 1, 6, 2, 5, 3, 4}",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/alternative-sorting/", "platform": "GFG" }
+    ],
     "description": "Input: {1, 2, 3, 4, 5, 6, 7}\noutput: {7, 1, 6, 2, 5, 3, 4}",
     "code": "// 14.\npublic class AlternateSorting {\n    public static void main(String[] args) {\n        int arr[] = {1,2,3,4,5,6,7};\n        int n = arr.length;\n        for (int i = 0; i < n; i++) {\n            \n        }\n    }\n}\n"
   },
@@ -124,6 +161,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/boats-to-save-people/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/minimum-number-of-boats-to-save-people/", "platform": "GFG" }
+    ],
     "description": ""
   },
   {
@@ -132,6 +173,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "•\tInput:  •\t4 5 //initial position x, y •\t9 //number of movements •\tU L R R D D U L R //7 movements ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/find-whether-path-exist-two-cells-matrix/", "platform": "GFG" }
+    ],
     "description": "•\tInput: \n•\t4 5 //initial position x, y\n•\t9 //number of movements\n•\tU L R R D D U L R //7 movements\n•\tOutput:\n5 5\n•\tGiven a matrix NxN, you are initially in the 0, 0 position. The matrix is filled with ones and zeros. Value “one” represents the path is available, while “zero” represents the wall. You need to find the can you able to reach the (N-1)x(N-1) index in the matrix. You can move only along the right and down directions if there’s “one” available.\n•\tInput:\n•\t5 //N value\n•\t1 0 1 0 0\n•\t1 1 1 1 1\n•\t0 0 0 1 0\n•\t1 0 1 1 1\n•\t0 1 1 0 1\n•\tOutput:\nYes"
   },
   {
@@ -148,6 +192,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input:   n*n matrix        1 -1 -1  1       -1  1 -1  1       -1 -1  1 -1       -1 -1 -1  1 Output: ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/number-of-islands/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/find-the-number-of-islands-using-dfs/", "platform": "GFG" }
+    ],
     "description": "Input:   n*n matrix\n       1 -1 -1  1\n      -1  1 -1  1\n      -1 -1  1 -1\n      -1 -1 -1  1\nOutput: 2 (two islands that I have \nbold in matrix at 1, 1 and 2, 2)"
   },
   {
@@ -156,6 +204,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input: array{2, 3, 5, 8, 10}        sum=10 Output: {2, 3, 5}        {2, 8}        {10}",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/perfect-sum-problem/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/combination-sum/", "platform": "LC" }
+    ],
     "description": "Input: array{2, 3, 5, 8, 10}\n       sum=10\nOutput: {2, 3, 5}\n       {2, 8}\n       {10}"
   },
   {
@@ -164,6 +216,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input: Number of process:5        Start position:3        Skip: 2nd Output: 1 will be the safest pos...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/josephus-problem/", "platform": "GFG" },
+      { "label": "YouTube", "url": "https://www.youtube.com/watch?v=Yeh1_2GyS5s", "platform": "YT" }
+    ],
     "description": "Input: Number of process:5\n       Start position:3\n       Skip: 2nd\nOutput: 1 will be the safest position\n(Logic: 1 2 3 4 5 starting from 3, 5th process will be skipped\n        1 2 3 4 5 process 2 will be skipped\n        1 2 3 4 5 process 4 will be skipped\n        1 2 3 4 5 process 3 will be skipped, so safest process is 1."
   },
   {
@@ -172,6 +228,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "1   2   3   4 8   7   6   5 9   10  11  12 16  15  14  13",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/print-matrix-snake-pattern/", "platform": "GFG" }
+    ],
     "description": "1   2   3   4\n8   7   6   5\n9   10  11  12\n16  15  14  13",
     "code": "// 21.\npublic class SnakePattern {\n    public static void main(String[] args) {\n        int n = 4, count = 1;\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= n; j++) {\n                System.out.print(count + \" \");\n                if (i % 2 == 0 && j != n)\n                    count -= 1;\n                else if (i % 2 != 0 && j != n)\n                    count += 1;\n            }\n            count += n;\n            System.out.println();\n        }\n    }\n}\n\n// Input:\n// n = 4\n\n// Output:\n// 1   2   3   4\n// 8   7   6   5\n// 9   10  11  12\n// 16  15  14  13\n\n// Explaination:\n\n// for the snake pattern consider the old row and even two calculate the action\n// the last column of each row is increased by the given size(4) of the pattern\n// odd number row each element is increased by 1 and \n// even number row each element is decreased by 1."
   },
@@ -181,6 +240,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "A   B   C B   C   A C   A   B",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/latin-square/", "platform": "GFG" }
+    ],
     "description": "A   B   C\nB   C   A\nC   A   B"
   },
   {
@@ -197,6 +259,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/write-a-c-program-to-print-all-permutations-of-a-given-string/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/permutations/", "platform": "LC" }
+    ],
     "description": ""
   },
   {
@@ -205,6 +271,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "1st_largest, 1st_smallest, 2nd_largest, 2nd_smallest, 3rd_largest ……. etc.",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/rearrange-array-maximum-minimum-form/", "platform": "GFG" }
+    ],
     "description": "1st_largest, 1st_smallest, 2nd_largest, 2nd_smallest, 3rd_largest ……. etc."
   },
   {
@@ -213,6 +282,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/sort-elements-by-frequency/", "platform": "GFG" }
+    ],
     "description": ""
   },
   {
@@ -221,6 +293,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/check-if-a-number-is-palindrome/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/palindrome-number/", "platform": "LC" }
+    ],
     "description": ""
   },
   {
@@ -229,6 +305,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/reverse-a-string-preserving-space-positions/", "platform": "GFG" }
+    ],
     "description": ""
   },
   {
@@ -237,6 +316,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/shortest-path-in-a-binary-maze/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/shortest-path-in-binary-matrix/", "platform": "LC" }
+    ],
     "description": ""
   },
   {
@@ -254,6 +337,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Check whether all english alphabets are present in the given sentence or not I/P: abc defGhi JklmnOP...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/pangram-checking/", "platform": "GFG" }
+    ],
     "description": "Check whether all english alphabets are present in the given sentence or not\nI/P: abc defGhi JklmnOP QRStuv wxyz\nO/P: True\nI/P: abc defGhi JklmnOP QRStuv\nO/P: False"
   },
   {
@@ -262,6 +348,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Find the strength of the given password string based on the conditions Four rules were given based o...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/program-check-strength-password/", "platform": "GFG" }
+    ],
     "description": "Find the strength of the given password string based on the conditions\nFour rules were given based on the type and no. of characters in the string.\nWeak – only Rule 1 is satisfied or Rule 1 is not satisfied\nMedium – Two rules are satisfied\nGood – Three rules satisfied\nStrong – All Four rules satisfied\n\nI/P: Qw!1        O/P: Weak\nI/P: Qwertyuiop  O/P: Medium\nI/P: QwertY123       O/P: Good\nI/P: Qwerty@123    O/P: Strong"
   },
   {
@@ -328,6 +417,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "1123 {1, 1, 2, 3} = aabc {11, 2, 3} = kbc {1, 1, 23} = aaw {11, 23} = kw",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/find-all-possible-interpretations/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/decode-ways/", "platform": "LC" }
+    ],
     "description": "1123\n{1, 1, 2, 3} = aabc\n{11, 2, 3} = kbc\n{1, 1, 23} = aaw\n{11, 23} = kw"
   },
   {
@@ -336,6 +429,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Eg: RACE CAR Eg: I DID, DID I ?",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/valid-palindrome/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/sentence-palindrome/", "platform": "GFG" }
+    ],
     "description": "Eg: RACE CAR\nEg: I DID, DID I ?"
   },
   {
@@ -344,6 +441,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input : arr[] = {2, 2, 0, 4, 0, 8} Output : 4 4 8 0 0 0 Input : arr[] = {0, 2, 2, 2, 0, 6, 6, 0, 0, ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/double-first-element-move-zero-end/", "platform": "GFG" }
+    ],
     "description": "Input : arr[] = {2, 2, 0, 4, 0, 8}\nOutput : 4 4 8 0 0 0\nInput : arr[] = {0, 2, 2, 2, 0, 6, 6, 0, 0, 8}\nOutput : 4 2 12 8 0 0 0 0 0 0"
   },
   {
@@ -352,6 +452,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "A number is said to be twisted prime if it is a prime number and reverse of the number is also a pri...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/twisted-prime-numbers/", "platform": "GFG" }
+    ],
     "description": "A number is said to be twisted prime if it is a prime number and reverse of the number is also a prime number.\nInput : 97\nOutput : Twisted Prime Number\nExplanation: 97 is a prime number\nand its reverse 79 is also a prime\nnumber."
   },
   {
@@ -360,6 +463,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Eg : Input {1, 2, 4, 3, 5, 6} SUM : 5 Output : 2 (1, 4) & (2, 3)",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/two-sum/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/given-an-array-a-and-a-number-x-check-for-pair-in-a-with-sum-as-x/", "platform": "GFG" }
+    ],
     "description": "Eg : Input {1, 2, 4, 3, 5, 6}\nSUM : 5\nOutput : 2 (1, 4) & (2, 3)"
   },
   {
@@ -368,6 +475,11 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "(Kadane’ Algorithm )",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/maximum-subarray/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/largest-sum-contiguous-subarray/", "platform": "GFG" },
+      { "label": "YouTube", "url": "https://www.youtube.com/watch?v=86CQq3pKSUw", "platform": "YT" }
+    ],
     "description": "(Kadane’ Algorithm )"
   },
   {
@@ -392,6 +504,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Consider the following dictionary  { i, like, sam, sung, samsung, mobile, ice,    cream, icecream, m...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/word-break/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/word-break-problem-dp-32/", "platform": "GFG" }
+    ],
     "description": "Consider the following dictionary \n{ i, like, sam, sung, samsung, mobile, ice, \n  cream, icecream, man, go, mango}\n\nInput:  ilike\nOutput: Yes \nThe string can be segmented as \"i like\".\n\nInput:  ilikesamsung\nOutput: Yes\nThe string can be segmented as \"i like samsung\" \nor \"i like sam sung\".<>"
   },
   {
@@ -425,6 +541,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "input: array[]={6, 3, 9, 10, 8, 2, 1, 15, 7}; output: {7, 5, 10, 15, 9, 3, 2, _, 8} If we are solvin...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/next-greater-element/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/next-greater-element-i/", "platform": "LC" }
+    ],
     "description": "input: array[]={6, 3, 9, 10, 8, 2, 1, 15, 7};\noutput: {7, 5, 10, 15, 9, 3, 2, _, 8}\nIf we are solving this question using sorting, we need to use any O(nlogn) sorting algorithm."
   },
   {
@@ -433,6 +553,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "https://www.geeksforgeeks.org/distinct-permutations-string-set-2",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/distinct-permutations-string-set-2/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/permutations-ii/", "platform": "LC" }
+    ],
     "description": "https://www.geeksforgeeks.org/distinct-permutations-string-set-2"
   },
   {
@@ -441,6 +565,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/given-a-number-find-next-smallest-palindrome-larger-than-this-number/", "platform": "GFG" }
+    ],
     "description": ""
   },
   {
@@ -449,6 +576,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "input: array[]={3, 4, 2, 3, 16, 3, 15, 16, 15, 15, 16, 2, 3} output: 3, 16, 15",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/top-k-frequent-elements/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/top-k-frequent-elements/", "platform": "LC" }
+    ],
     "description": "input: array[]={3, 4, 2, 3, 16, 3, 15, 16, 15, 15, 16, 2, 3}\noutput: 3, 16, 15"
   },
   {
@@ -473,6 +604,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input: He did a good deed Output: He good Input: Hari speaks malayalam Output: Hari speaks",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/remove-palindromic-words-given-sentence/", "platform": "GFG" }
+    ],
     "description": "Input:\nHe did a good deed\nOutput:\nHe good\nInput:\nHari speaks malayalam\nOutput:\nHari speaks"
   },
   {
@@ -481,6 +615,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input: dt1 = {10, 2, 2014} dt2 = {10, 3, 2015} Output: 393 dt1 represents “10-Feb-2014” and dt2 repr...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/find-number-of-days-between-two-given-dates/", "platform": "GFG" }
+    ],
     "description": "Input: dt1 = {10, 2, 2014} dt2 = {10, 3, 2015}\nOutput: 393\ndt1 represents “10-Feb-2014” and dt2 represents “10-Mar-2015” The difference is 365 + 28\nInput: dt1 = {10, 2, 2000} dt2 = {10, 3, 2000}\nOutput: 29\nNote that 2000 is a leap year\nInput: dt1 = {10, 2, 2000} dt2 = {10, 2, 2000}\nOutput: 0\nBoth dates are same\nInput: dt1 = {1, 2, 2000}; dt2 = {1, 2, 2004};\nOutput: 1461\nNumber of days is 365*4 + 1"
   },
   {
@@ -489,6 +626,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Examples: Input: digits[] = “121” Output: 3 // The possible decodings are “ABA”, “AU”, “LA” Input: d...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/decode-ways/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/count-possible-decodings-given-digit-sequence/", "platform": "GFG" }
+    ],
     "description": "Examples:\nInput: digits[] = “121”\nOutput: 3 // The possible decodings are “ABA”, “AU”, “LA”\nInput: digits[] = “1234” Output: 3\n// The possible decodings are “ABCD”, “LCD”, “AWD”"
   },
   {
@@ -497,6 +638,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/find-possible-words-phone-digits/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/letter-combinations-of-a-phone-number/", "platform": "LC" }
+    ],
     "description": ""
   },
   {
@@ -513,6 +658,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "I/p 5 8 11 6 2 1 7 O/p 1 5 7 11 8 6 2",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/sort-even-odd-elements-order/", "platform": "GFG" }
+    ],
     "description": "I/p 5 8 11 6 2 1 7\nO/p 1 5 7 11 8 6 2"
   },
   {
@@ -521,6 +669,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "I/p catch, got, tiger, mat, eat, Pat, tap, tea Word: ate O/p eat, tea",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/check-whether-two-strings-are-anagram-of-each-other/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/group-anagrams/", "platform": "LC" }
+    ],
     "description": "I/p catch, got, tiger, mat, eat, Pat, tap, tea\nWord: ate\nO/p eat, tea"
   },
   {
@@ -529,6 +681,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "I/p 1, 2, 3, 7, 6 O/p 7(has 1+ 2+3 in left 6 in right)",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/equilibrium-index-of-an-array/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/find-pivot-index/", "platform": "LC" }
+    ],
     "description": "I/p 1, 2, 3, 7, 6\nO/p 7(has 1+ 2+3 in left 6 in right)"
   },
   {
@@ -537,6 +693,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/program-to-print-first-n-prime-numbers/", "platform": "GFG" }
+    ],
     "description": ""
   },
   {
@@ -545,6 +704,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/sort-array-according-to-count-of-set-bits/", "platform": "GFG" }
+    ],
     "description": ""
   },
   {
@@ -561,6 +723,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/given-an-array-of-numbers-arrange-the-numbers-to-form-the-biggest-number/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/largest-number/", "platform": "LC" }
+    ],
     "description": ""
   },
   {
@@ -609,6 +775,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input : [ 2 2 3 4 5 12 2 3 3 3 12 ] Output : 3 3 3 3 2 2 2 12 12 4 5 Explanation : 3 occurred 4 time...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/sort-elements-by-frequency/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/sort-array-by-increasing-frequency/", "platform": "LC" }
+    ],
     "description": "Input : [ 2 2 3 4 5 12 2 3 3 3 12 ]\nOutput : 3 3 3 3 2 2 2 12 12 4 5\nExplanation : 3 occurred 4 times, 2 occurred 3 times, 12 occurred 2 times, 4 occurred 1 time, 5 occurred 1 time\n\nInput : [ 0 -1 2 1 0 ]\nOutput : 0 0 -1 1 2\nNote : sort single occurrence elements in ascending order"
   },
   {
@@ -617,6 +787,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Note : * symbol can replace n number of characters Input : Spoon  Sp*n  Output : TRUE     Zoho     *...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/wildcard-pattern-matching/", "platform": "GFG" }
+    ],
     "description": "Note : * symbol can replace n number of characters\nInput : Spoon  Sp*n  Output : TRUE\n    Zoho     *o*o  Output : TRUE\n    Man       n*     Output : FALSE\n    Subline  line   Output : TRUE"
   },
   {
@@ -633,6 +806,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Example:  Input: 2 10 4 8 Output: 2 8  Input: 1 10 6 8 13 21 Output: 1 8 13 21",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/check-number-fibonacci-number/", "platform": "GFG" }
+    ],
     "description": "Example:\n\nInput: 2 10 4 8\nOutput: 2 8 \nInput: 1 10 6 8 13 21\nOutput: 1 8 13 21"
   },
   {
@@ -649,6 +825,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Always starting point is (0,0), Ending point is (N-1,N-1). You have to go from starting point to end...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/rat-in-a-maze/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/unique-paths/", "platform": "LC" }
+    ],
     "description": "Always starting point is (0,0), Ending point is (N-1,N-1).\nYou have to go from starting point to ending point. One valid solution is enough.\nExample:\n \n   Input:\n   N=4 \n   1 1 0 0\n   1 0 0 1\n   1 1 1 1\n   0 0 0 1\n   Output:\n   _ 1 0 0\n   _ 0 0 1\n   _ _ _ _\n   0 0 0 _"
   },
   {
@@ -689,6 +869,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Ex.  INPUT  :  5      OUTPUT  :              1            1 1           1 2 1          1 3 3 1      ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/pascal-triangle/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/pascals-triangle/", "platform": "LC" }
+    ],
     "description": "Ex.  INPUT  :  5\n\n    OUTPUT  :\n\n            1\n           1 1\n          1 2 1\n         1 3 3 1\n        1 4 6 4 1\n\n  Ex.  INPUT  :  7\n\n    OUTPUT  :\n\n            1\n           1 1\n          1 2 1\n         1 3 3 1\n        1 4 6 4 1\n       1 5 10 10 5 1\n      1 6 15 20 15 6 1"
   },
   {
@@ -705,6 +889,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Ex.  INPUT  :        Enter array size  :  8     Enter arryay elements  :  1 3 10 7 9 2 4 6          ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/longest-consecutive-subsequence/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/longest-consecutive-sequence/", "platform": "LC" }
+    ],
     "description": "Ex.  INPUT  :  \n\n    Enter array size  :  8\n    Enter arryay elements  :  1 3 10 7 9 2 4 6\n    \n    OUTPUT  :\n\n    1 2 3 4\n\n  Ex.  INPUT  :  \n\n    Enter array size  :  8\n    Enter arryay elements  :  1 3 9 7 8 2 4 6\n    \n    OUTPUT  :\n\n    1 2 3 4\n    6 7 8 9"
   },
   {
@@ -713,6 +901,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input  :     Enter size of first array  :  6   Enter the elements    :  1 2 3 4 5 3   Enter size of ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/find-union-and-intersection-of-two-unsorted-arrays/", "platform": "GFG" }
+    ],
     "description": "Input  : \n\n  Enter size of first array  :  6\n  Enter the elements    :  1 2 3 4 5 3\n  Enter size of second array  :  4\n  Enter the elements    :  1 2 7 5\n\n  OUTPUT  :\n\n  1 2 3 4 5 7"
   },
   {
@@ -721,6 +912,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "INPUT  :        Enter the array size  :  4   Enter the elements  :  1 1 2 4      OUTPUT  :    1 2 4",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/remove-duplicates-sorted-array/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/remove-duplicates-from-sorted-array/", "platform": "LC" }
+    ],
     "description": "INPUT  :  \n  \n  Enter the array size  :  4\n  Enter the elements  :  1 1 2 4\n  \n  OUTPUT  :\n\n  1 2 4"
   },
   {
@@ -737,6 +932,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "INPUT  :      Enter the array size  :  8   Enter the elements  :  1,3,5,2,1,8,6,9   Enter the window...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/sliding-window-maximum/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/sliding-window-maximum-maximum-of-all-subarrays-of-size-k/", "platform": "GFG" }
+    ],
     "description": "INPUT  :\n  \n  Enter the array size  :  8\n  Enter the elements  :  1,3,5,2,1,8,6,9\n  Enter the window size  :  3\n\n  OUTPUT  :\n\n  5 5 5 8 8 9"
   },
   {
@@ -745,6 +944,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input : abcdef Output : ebcdaf",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/reverse-vowels-of-a-string/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/reverse-vowels-given-string/", "platform": "GFG" }
+    ],
     "description": "Input : abcdef\nOutput : ebcdaf"
   },
   {
@@ -753,6 +956,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/search-a-word-in-a-2d-grid-of-characters/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/word-search/", "platform": "LC" }
+    ],
     "description": ""
   },
   {
@@ -769,6 +976,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Given 2 huge numbers as separate digits, store them in array and process them and calculate the sum ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/sum-two-large-numbers/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/add-strings/", "platform": "LC" }
+    ],
     "description": "Given 2 huge numbers as separate digits, store them in array and process them and calculate the sum of 2 numbers and store the result in an array and print the sum.\nInput:\nNumber of digits:12\n9 2 8 1 3 5 6 7 3 1 1 6\nNumber of digits:9\n7 8 4 6 2 1 9 9 7\nOutput :\n9 2 8 9 2 0 2 9 5 1 1 3"
   },
   {
@@ -777,6 +988,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "value Input Array = {1 3 4 8 10 } N = 7 output true",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/given-an-array-a-and-a-number-x-check-for-pair-in-a-with-sum-as-x/", "platform": "GFG" }
+    ],
     "description": "value\nInput\nArray = {1 3 4 8 10 } N = 7\noutput\ntrue"
   },
   {
@@ -801,6 +1016,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "{-2 -3 4 -1 -2 1 5 -3} output 7 elements [ 4 -1 -2 1 5]",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/maximum-subarray/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/largest-sum-contiguous-subarray/", "platform": "GFG" }
+    ],
     "description": "{-2 -3 4 -1 -2 1 5 -3}\noutput 7 elements [ 4 -1 -2 1 5]"
   },
   {
@@ -809,6 +1028,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Input : 8 3 4 7 9 N=7 Output {3 4 } {7}",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/combinational-sum/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/combination-sum/", "platform": "LC" }
+    ],
     "description": "Input :\n8 3 4 7 9 N=7\nOutput\n{3 4 } {7}"
   },
   {
@@ -825,6 +1048,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/lru-cache/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/lru-cache-implementation/", "platform": "GFG" }
+    ],
     "description": "",
     "code": "import java.util.*;\npublic class New {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int i = sc.nextInt();\n        System.out.println(\"pradeep\"+i);\n    }\n}\n"
   },
@@ -834,6 +1061,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Example: Input: [ {Ram, Syam}, {Akil, Syam}, {Nikil, Ram}, {Subhash, Ram}, {Karthik, Akil} ]; Syam 2...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/number-of-nodes-at-given-level-in-a-tree-using-bfs/", "platform": "GFG" }
+    ],
     "description": "Example:\nInput:\n[\n{Ram, Syam},\n{Akil, Syam},\n{Nikil, Ram},\n{Subhash, Ram},\n{Karthik, Akil}\n];\nSyam 2\n\nOutput: 3 (Syam has Ram and Akil in level 1 and in level 2 he have Nikil, Subhash, Karthik. So the answer is 3)."
   },
   {
@@ -842,6 +1072,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Example: Input: {2, 3, 2, 6, 1, 6, 2} Output: 1 – 1 2 – 3 3 – 1 6 – 2",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/counting-frequencies-of-array-elements/", "platform": "GFG" }
+    ],
     "description": "Example:\nInput: {2, 3, 2, 6, 1, 6, 2}\nOutput:\n1 – 1\n2 – 3\n3 – 1\n6 – 2"
   },
   {
@@ -850,6 +1083,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Sample:  Array : {2, 3, 7, ¬1, 8, 5, 11}      Output:  {2¬>3, 3¬>5, 7¬>8, ¬1¬>2, 8¬>11, 5¬>7, 11¬>}",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/next-greater-element/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/next-greater-element-i/", "platform": "LC" }
+    ],
     "description": "Sample: \nArray : {2, 3, 7, ¬1, 8, 5, 11} \n   \nOutput: \n{2¬>3, 3¬>5, 7¬>8, ¬1¬>2, 8¬>11, 5¬>7, 11¬>}"
   },
   {
@@ -858,6 +1095,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "sum.  Sample:  Array : {¬2, 7, 5, ¬1, 3, 2, 9, ¬7}   Output:       Sum : 14       Elements : 3, 2, 9",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/maximum-subarray/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/largest-sum-contiguous-subarray/", "platform": "GFG" }
+    ],
     "description": "sum.\n\nSample: \nArray : {¬2, 7, 5, ¬1, 3, 2, 9, ¬7} \n\nOutput: \n     Sum : 14 \n     Elements : 3, 2, 9"
   },
   {
@@ -866,6 +1107,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Sample:   house no : 123@ cbe  Output:    ebc32 1o :  nes@ uoh",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/reverse-a-string-preserving-space-positions/", "platform": "GFG" }
+    ],
     "description": "Sample:   house no : 123@ cbe \nOutput:    ebc32 1o :  nes@ uoh"
   },
   {
@@ -874,6 +1118,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "moving only along two directions, either right or down. Print the word if it occurs.   Sample :     ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/boggle-find-possible-words-board-characters/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/word-search-ii/", "platform": "LC" }
+    ],
     "description": "moving only along two directions, either right or down. Print the word if it occurs.\n \nSample :         \n  a   z  o   l \n  n   x  h   o\n  v   y   i   v \n  o   r   s  e \n Dictionary = {van, zoho, love, are, is} \n \n Output: \n    zoho \n    love \n    Is"
   },
   {
@@ -882,6 +1130,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Should use RECURSION    Sample:   one two three  Output :  three two one",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/reverse-words-in-a-given-string/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/reverse-words-in-a-string/", "platform": "LC" }
+    ],
     "description": "Should use RECURSION\n  \nSample:   one two three \nOutput :  three two one",
     "code": "//107.\n\nimport java.util.*;\n\npublic class ScreenLength {\n\n    static int spaceCountHandler(String sentence) {\n        int spaceCount = 0;\n        for(int i = 0; i < sentence.length();i++ ) {\n            if(sentence.charAt(i) == ' ') \n                spaceCount++;\n        }\n        return spaceCount;\n    }\n    \n    static String addSpaceHandler(String sentence, int addSpaceValue, int remainingCount, int spaceCount) {\n        int sentenceLen = sentence.length();\n        String temp = \"\";\n        int spaceVal = addSpaceValue;\n        int flag = spaceCount;\n        for(int i = 0; i < sentenceLen;i++) {\n        //  System.out.println(flag)\n            if(sentence.charAt(i)!=' ')\n                temp += sentence.charAt(i)+\"\";\n            else if(sentence.charAt(i) == ' ') {\n                if(remainingCount%spaceCount != 0 && flag == spaceCount) {\n                    spaceVal++;\n                } else spaceVal = addSpaceValue;\n                \n                for(int j = 0;j <= spaceVal; j++) {\n                    temp  = temp + \"*\";\n                }\n                flag--;\n            }\n        }\n        return temp;\n    }\n\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String sentence = \"Today is wednesda\";\n        int screenLength = 20;\n        // System.out.println(sentence + \" \" + screenLength);\n        int spaceCount = spaceCountHandler(sentence);\n        int remainingCount = screenLength - sentence.length();\n        int addSpaceValue = (remainingCount)/ spaceCount;\n        // System.out.println(addSpaceValue);\n        String newString = addSpaceHandler(sentence, addSpaceValue,remainingCount, spaceCount);\n        System.out.println(newString);\n        sc.close();\n    }\n}\n\n//INPUT:\n//Screen length = 20\n//Sentence = Today is wednesda\n\n//OUTPUT:\n//Today***is**wednesda\n\n//EXPLAINATION:\n/*  first we need to find the number of space in the sentence.\n    remaining screen length should be find by subtracting the screenLength - sentence.length()\n    find the how many space need to add by (remainingScreenLength)/ spaceCount \n    when the addSpaceCount is odd the first space should add +1 than addSpaceValue and other place add normal.\n*/"
   },
@@ -891,6 +1143,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "arr: 23, 34, 45, 66, 1, 12 target: 1  Output Founded at the index of: 4 Explaination:      1  66    ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/search-in-rotated-sorted-array/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/search-an-element-in-a-sorted-and-pivoted-array/", "platform": "GFG" }
+    ],
     "description": "arr: 23, 34, 45, 66, 1, 12\ntarget: 1\n\nOutput\nFounded at the index of: 4\nExplaination:\n     1\n 66      12\n 45      23\n     34\n find the mid element of the array then check the mid with the start index value\n arr[i] <= arr[mid]\n     whether the mid value is greater than or equal to mid then, that part will be \n [23,34,45,66] are one part of sorted element \n or\n if arr is [23,34,45,1,2,12] then [1,2,12] is other part of sorted element\n then check the target value is under the sorted part of other \n according to that change the starting and ending position."
   },
   {
@@ -899,6 +1155,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Screen length = 20 Sentence = Today is wednesda  OUTPUT: Today***is**wednesda  EXPLAINATION:  first ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/text-justification/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/rearrange-a-string-in-the-form-of-integer-sum-followed-by-the-minimized-character/", "platform": "GFG" }
+    ],
     "description": "Screen length = 20\nSentence = Today is wednesda\n\nOUTPUT:\nToday***is**wednesda\n\nEXPLAINATION:\n first we need to find the number of space in the sentence.\n    remaining screen length should be find by subtracting the screenLength - sentence.length()\n    find the how many space need to add by (remainingScreenLength)/ spaceCount \n    when the addSpaceCount is odd the first space should add +1 than addSpaceValue and other place add normal.",
     "code": "//109.\n\npublic class SortedAndRotatedArray {\n\n    static String findingValue(int arr[], int target) {\n        int i = 0, j = arr.length - 1;\n        while(i<=j) {\n            int mid = (i+j)/2;\n            if(arr[mid] == target){\n                return \"Founded at the index of: \"+mid;\n            }\n            if(arr[i] <= arr[mid]) {\n                if((target >= arr[i]) && (target <= arr[mid]) )\n                    j = mid - 1;\n                else\n                    i = mid + 1;\n            } else {\n                if((target >= arr[mid]) && (target <= arr[j])) \n                    i = mid + 1;\n                else\n                    j = mid - 1;\n            }\n        }\n        return \"Not Founded\";\n    }\n    public static void main(String[] args) {\n        int arr[] = { 23, 34, 45, 66, 77, 1, 12 };\n        int target = 1;\n        System.out.println(findingValue(arr, target));\n    }\n}\n\n//Input\n// arr: 23, 34, 45, 66, 1, 12\n// target: 1\n\n// Output\n// Founded at the index of: 4\n\n// Explaination:\n//     1\n// 66      12\n// 45      23\n//     34\n// find the mid element of the array then check the mid with the start index value\n// arr[i] <= arr[mid]\n//     whether the mid value is greater than or equal to mid then, that part will be \n// [23,34,45,66] are one part of sorted element \n// or\n// if arr is [23,34,45,1,2,12] then [1,2,12] is other part of sorted element\n// then check the target value is under the sorted part of other \n// according to that change the starting and ending position."
   },
@@ -908,6 +1168,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/counting-frequencies-of-array-elements/", "platform": "GFG" }
+    ],
     "description": ""
   },
   {
@@ -916,6 +1179,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Example 1  Input:    1  2 3 4 5 6 7 8 9 0                 0 1 2 3 4 5 6 7 8 0                3 4 5 6...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/efficiently-compute-sums-of-diagonals-of-a-matrix/", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/matrix-diagonal-sum/", "platform": "LC" }
+    ],
     "description": "Example 1\n\nInput:    1  2 3 4 5 6 7 8 9 0 \n               0 1 2 3 4 5 6 7 8 0\n               3 4 5 6 7 8 9 6 4 0\n               2 3 4 5 6 7 8 9 3 2\n               3 4 5 6 7 4 3 2 1 3\n               3 4 5 6 2 4 4 2 4 6\n               2 3 4 6 2 4 6 2 3 5\n               2 3 5 6 2 4 6 2 3 5\n               2 4 6 2 1 4 3 3 5 2\n               3 3 5 2 4 6 2 1 4 6\nOutput:  42\nExample 2\n\nInput:   1 22 33 44 55 66 77 88 99 100\n              100 1 88 77 66 55 44 33 22 11\n              88 88 1 66 55 44 33 22 11 100\n              88 77 66 1 44 33 22 11 100 99\n              77 66 55 44  1 22  11 88 99 100\n              66 55 44 33 22 1 77 88 99 100\n              44 33 22 11 100 99 1 77 66 55\n              33 22 11 100 99 88 77 1 55 44\n              22 11 100 99 88 77 66 55 1 33\n              100 11 22 33 44 55 99 88 77 1\nOutput: 10"
   },
   {
@@ -949,6 +1216,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Convert a non-negative integer num to its English words representation. Example 1:  Input: num = 123...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/integer-to-english-words/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/convert-number-to-words/", "platform": "GFG" }
+    ],
     "description": "Convert a non-negative integer num to its English words representation.\nExample 1:\n\nInput: num = 123\nOutput: \"One Hundred Twenty Three\"\nExample 2:\n\nInput: num = 12345\nOutput: \"Twelve Thousand Three Hundred Forty Five\"\nExample 3:\n\nInput: num = 1234567\nOutput: \"One Million Two Hundred Thirty Four Thousand Five Hundred Sixty Seven\""
   },
   {
@@ -957,6 +1228,9 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Example 1: Input: Malayalam is my mother tongue Output: is my mother tongue",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/remove-palindromic-words-given-sentence/", "platform": "GFG" }
+    ],
     "description": "Example 1:\nInput: Malayalam is my mother tongue\nOutput: is my mother tongue",
     "code": "//116.\nimport java.util.Scanner;\n\npublic class RemovePalindrom {\n    public static boolean ispalindrome(String a) {\n        a = a.toLowerCase();\n        // System.out.println(a);\n        for(int i = 0,j = a.length()-1;i<j;i++,j--) {\n            if(a.charAt(i)!=a.charAt(j))\n                return false;\n        }\n        return true;\n    }\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // System.out.println(\"hello\");\n        String str = \"Malayalam is my mother tongue\",temp=\"\",temp2 = \"\";\n        int n = str.length();\n        // String a[] = str.split(\" \");\n        // System.out.println(Armarays.toString(a));\n        for(int i = 0;i<n;i++){\n            // String temp2 = \"\";\n            System.out.println(i);\n            if(str.charAt(i) != ' ')\n                temp2+=str.charAt(i);\n            if(str.charAt(i) == ' ' || i==(n-1)) {\n                System.out.println(temp2);\n                if(!ispalindrome(temp2))\n                    temp+=temp2+\" \";\n                temp2 = \"\";\n            }\n        }\n        System.out.println(temp);\n    }\n}\n"
   },
@@ -966,6 +1240,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Given two version strings, version1 and version2, compare them. A version string consists of revisio...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/compare-version-numbers/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/compare-two-version-numbers/", "platform": "GFG" }
+    ],
     "description": "Given two version strings, version1 and version2, compare them. A version string consists of revisions separated by dots '.'. The value of the revision is its integer conversion ignoring leading zeros.\n\nTo compare version strings, compare their revision values in left-to-right order. If one of the version strings has fewer revisions, treat the missing revision values as 0.\n\nReturn the following:\n\nIf version1 < version2, return -1.\nIf version1 > version2, return 1.\nOtherwise, return 0.\n \nExample 1:\n\nInput: version1 = \"1.2\", version2 = \"1.10\"\n\nOutput: -1\n\nExplanation:\n\nversion1's second revision is \"2\" and version2's second revision is \"10\": 2 < 10, so version1 < version2.\n\nExample 2:\n\nInput: version1 = \"1.01\", version2 = \"1.001\"\n\nOutput: 0\n\nExplanation:\n\nIgnoring leading zeroes, both \"01\" and \"001\" represent the same integer \"1\".",
     "code": "public class CompareVersion {\n    public static int compareVersion(String version1, String version2) {\n        String v1[] = version1.split(\"\\\\.\");\n        String v2[] = version2.split(\"\\\\.\");\n        int v1n = v1.length, v2n = v2.length;\n        int n = v1n>v2n?v1n:v2n;\n        int i=0;\n        while(i<n) {\n            int v1revision = i<v1n? Integer.parseInt(v1[i]):0;\n            int v2revision = i<v2n? Integer.parseInt(v2[i]):0;\n            if(v1revision<v2revision)\n                return -1;\n            else if(v1revision>v2revision)\n                return 1;\n            else\n                i++;\n        }\n        return 0;\n    }\n    public static void main(String[] args) {\n        String v1 = \"1.0\";\n        String v2 = \"1.0.0.0\";\n        System.out.println(compareVersion(v1, v2));\n    }\n}\n"
   },
@@ -983,6 +1261,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "You want to maximize your profit by choosing a single day to buy one stock and choosing a different ...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/best-time-to-buy-and-sell-stock/", "platform": "GFG" }
+    ],
     "description": "You want to maximize your profit by choosing a single day to buy one stock and choosing a different day in the future to sell that stock.\n     Return the maximum profit you can achieve from this transaction. If you cannot achieve any profit, return 0.\n\nExample 1:\n\nInput: prices = [7,1,5,3,6,4]\nOutput: 5\nExplanation: Buy on day 2 (price = 1) and sell on day 5 (price = 6), profit = 6-1 = 5.\nNote that buying on day 2 and selling on day 1 is not allowed because you must buy before you sell.\n\nExample 2:\n\nInput: prices = [7,6,4,3,1]\nOutput: 0\nExplanation: In this case, no transactions are done and the max profit = 0."
   },
   {
@@ -999,6 +1281,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Example 1:  Input: num = 123 Output: \"One Hundred Twenty Three\" Example 2:  Input: num = 12345 Outpu...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/integer-to-english-words/", "platform": "LC" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/convert-number-to-words/", "platform": "GFG" }
+    ],
     "description": "Example 1:\n\nInput: num = 123\nOutput: \"One Hundred Twenty Three\"\nExample 2:\n\nInput: num = 12345\nOutput: \"Twelve Thousand Three Hundred Forty Five\"\nExample 3:\n\nInput: num = 1234567\nOutput: \"One Million Two Hundred Thirty Four Thousand Five Hundred Sixty Seven\""
   },
   {
@@ -1007,6 +1293,10 @@ export const LOCAL_ROUND2_PROBLEMS: ZohoProblem[] = [
     "category": "Local Practice",
     "insight": "Examples:   Input: arr[] = [1, 0, 1, 1, 1, 0, 0] Output: 1 , 6 Explanation: arr[1 ... 6] is the long...",
     "difficulty": "Medium",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/problems/largest-subarray-of-0s-and-1s/1", "platform": "GFG" },
+      { "label": "LeetCode", "url": "https://leetcode.com/problems/contiguous-array/", "platform": "LC" }
+    ],
     "description": "Examples: \n\nInput: arr[] = [1, 0, 1, 1, 1, 0, 0]\nOutput: 1 , 6\nExplanation: arr[1 ... 6] is the longest subarray with three 0s and three 1s.\n\nInput: arr[] = [0, 0, 1, 1, 0]\nOutput: 0 , 3 ( 1 , 3 is also valid )\nExplanation: arr[0 ... 3] or  arr[1 ... 4] is the longest subarray with two 0s and two 1s.\n\nInput: arr[] = [0]\nOutput: No Sub array found\nExplanation: There is no subarray with an equal number of 0s and 1s."
   }
 ];
@@ -1018,6 +1308,10 @@ export const LOCAL_ROUND3_PROBLEMS: ZohoProblem[] = [
     "category": "Local App Build",
     "insight": "OOP Application Design practice",
     "difficulty": "App",
+    "links": [
+      { "label": "YouTube", "url": "https://www.youtube.com/watch?v=EkuJZS0pLxg", "platform": "YT" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/online-shopping-management-system/", "platform": "GFG" }
+    ],
     "description": "**Description:**  \nBuild an online shopping interface where buyers and sellers can engage in efficient transactions across a wide range of products.\n\n### Modules:\n- **Profile Service**\n- **Inventory Service**\n- **Order Service**\n- **Payment Service**\n\n### Requirements:\n- Allow buyers and sellers to register and log in.\n- Allow sellers to manage their inventory of products.\n  - Operations: `addItem()`, `updateItem()`\n- Allow buyers to add items to the cart, place orders, and make payments.\n  - Operations: `listInventory()`, `buyItem()`, `addToCart()`, `makePayment()`\n- Validate orders against inventory.\n- Password validation and encryption.\n\n---"
   },
   {
@@ -1026,6 +1320,10 @@ export const LOCAL_ROUND3_PROBLEMS: ZohoProblem[] = [
     "category": "Local App Build",
     "insight": "OOP Application Design practice",
     "difficulty": "App",
+    "links": [
+      { "label": "YouTube", "url": "https://www.youtube.com/watch?v=DSGsa0PoEnQ", "platform": "YT" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/design-an-online-cab-booking-system/", "platform": "GFG" }
+    ],
     "description": "**Description:**  \nDesign a taxi booking application where customers can book taxis available at certain points in a linear route.\n\n### Problem Assumptions:\n- **Taxi Count:** Assume 4 taxis for simplicity, but it should scale to any number of taxis.\n- **Points on Route:** A, B, C, D, E, F (each 15 km apart)\n- **Travel Time Between Points:** 60 minutes\n- **Charges:**  \n  - Minimum Rs.100 for the first 5 km\n  - Rs.10 per km thereafter\n- **Initial Taxi Position:** All taxis are stationed at A.\n\n### Booking Rules:\n- When a customer books a taxi:\n  - A free taxi at the pickup point is allocated.\n  - If no free taxi is available, the nearest taxi is allocated.\n  - If two taxis are free at the same point, the one with lower earnings is allocated.\n  - Taxis only charge from the pickup point to the drop point.\n  - If no taxi is available, the booking is rejected.\n\n### Modules:\n1. **Call Taxi Booking**\n\n   **Sample Inputs and Outputs:**\n\n   **Input 1:**  \n   - Customer ID: 1  \n   - Pickup Point: A  \n   - Drop Point: B  \n   - Pickup Time: 9  \n\n   **Output 1:**  \n   - Taxi can be allotted.  \n   - Taxi-1 is allotted.  \n\n   **Input 2:**  \n   - Customer ID: 2  \n   - Pickup Point: B  \n   - Drop Point: D  \n   - Pickup Time: 9  \n\n   **Output 2:**  \n   - Taxi can be allotted.  \n   - Taxi-2 is allotted.  \n\n   **Input 3:**  \n   - Customer ID: 3  \n   - Pickup Point: B  \n   - Drop Point: C  \n   - Pickup Time: 12  \n\n   **Output 3:**  \n   - Taxi can be allotted.  \n   - Taxi-1 is allotted.  \n\n2. **Display Taxi Details**\n\n   **Output Example:**\n   ```\n   Taxi-1    Total Earnings: Rs. 400\n   BookingID   CustomerID   From   To   PickupTime   DropTime   Amount\n   1           1            A      B    9           10         200\n   3           3            B      C    12          13         200\n\n   Taxi-2    Total Earnings: Rs. 350\n   BookingID   CustomerID   From   To   PickupTime   DropTime   Amount\n   2           2            B      D    9           11         350\n   ```\n\n---"
   },
   {
@@ -1034,6 +1332,10 @@ export const LOCAL_ROUND3_PROBLEMS: ZohoProblem[] = [
     "category": "Local App Build",
     "insight": "OOP Application Design practice",
     "difficulty": "App",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/railway-reservation-system-design/", "platform": "GFG" },
+      { "label": "YouTube", "url": "https://www.youtube.com/watch?v=uOdCObD77cY", "platform": "YT" }
+    ],
     "description": "**Description:**  \nDevelop a railway reservation application with the following types of seats:\n- **AC Coach**\n- **Non-AC Coach**\n- **Seater**\n\nEach seat type has a capacity of 60 seats with a waiting list max of 10 seats.\n\n### Modules:\n1. **Booking**\n2. **Availability Checking**\n3. **Cancellation**\n4. **Prepare Chart**\n\n---"
   },
   {
@@ -1042,6 +1344,9 @@ export const LOCAL_ROUND3_PROBLEMS: ZohoProblem[] = [
     "category": "Local App Build",
     "insight": "OOP Application Design practice",
     "difficulty": "App",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/black-box-game/", "platform": "GFG" }
+    ],
     "description": "**Description:**  \nA matrix-based game where rays interact with atoms inside a grid according to specific rules.\n\n### Problem Setup:\n- **Grid:**  \n  ```\n  R3  | -   -   - |\n  R2  | -   -   - |\n  R1  | -   -   - |\n        C1  C2  C3\n  ```\n- **Rules:**\n  - **Rule 1:** A ray with an atom in its path prints 'H' (Hit).\n  - **Rule 2 & 3:** A ray with an atom in a diagonal adjacent position refracts.\n  - **Rule 4:** A ray with atoms in both diagonal positions reflects.\n  - **Rule 5:** Deflection happens in the order of input rays.\n\n### Sample Input and Output:\n\n**Input:**  \n- Position of atoms and the rays originating from outside the box.\n- Example:\n  ```\n  3\n  3 1\n  2 2\n  1 3\n  3\n  R3 C1 C3\n  ```\n\n**Output:**\n- Display the final state of the box.\n\n**Sample Matrix Display:**\n  ```\n      C1  H   C3\n  R3  | -   -   - | R3\n  H   | -   X   - | H\n  R1  | -   -   - | R1\n        C1  H   C3\n  ```\n\nHere's a refined version of the question based on your description:\n\n---"
   },
   {
@@ -1050,6 +1355,9 @@ export const LOCAL_ROUND3_PROBLEMS: ZohoProblem[] = [
     "category": "Local App Build",
     "insight": "OOP Application Design practice",
     "difficulty": "App",
+    "links": [
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/design-breakout-game/", "platform": "GFG" }
+    ],
     "description": "1. **Array Structure:**  \n   You have a 7x7 grid array representing a game where:\n   - `w` represents walls surrounding the area.\n   - `g` represents ground.\n   - `o` represents the ball.\n   - Numbers (`1`, `2`, `3`, etc.) represent bricks with each number indicating the strength of the brick (i.e., how many hits it can take before disappearing).\n\n2. **Initial Setup:**\n   - **Input size**: 7\n   - **Number of bricks**: 6\n   - **Positions of bricks**: (2, 2), (2, 3), (2, 4), (3, 2), (3, 3), (3, 4)\n\n3. **Game Mechanics:**\n   - The ball starts with 5 lives.\n   - The ball can move in three directions:\n     - **St (Straight)**: The ball moves vertically upwards.\n     - **Lt (Left Diagonal)**: The ball moves diagonally left-upward.\n     - **Rt (Right Diagonal)**: The ball moves diagonally right-upward.\n   - When the ball hits a brick, the brick's strength decreases by 1. If a brick’s strength reaches 0, it disappears.\n   - After hitting a brick, the ball returns to its original position unless the brick disappears, in which case it moves into the empty space left by the brick.\n\n4. **Commands:**\n   - **St (Straight)**: If there is a brick in the ball's path, it hits it, decreasing the brick’s strength. The ball then returns to its starting position if the brick remains. If the brick disappears (reaches 0 strength), the ball moves into the position where the brick was.\n   - **Lt (Left Diagonal)**: The ball moves diagonally left. If it encounters a brick, it hits it, reducing the brick's strength by 1. If the brick disappears, the ball takes its position and continues moving downward.\n   - **Rt (Right Diagonal)**: The ball moves diagonally right, following the same rules as Lt.\n\n5. **Example Gameplay:**\n   - **Input Grid:**\n\n     ```\n     w w w w w w w\n     w           w\n     w   1 1 1   w\n     w   1 1 1   w\n     w           w\n     w           w\n     w g g o g g w\n     ```\n\n   - **Example Commands and Output:**\n     - **Input**: `St`\n       - **Output**:\n\n         ```\n         w w w w w w w\n         w           w\n         w   1 1 1   w\n         w   1 1 1   w\n         w           w\n         w           w\n         w g g o g g w\n         Ball count: 5\n         ```\n\n       Explanation: The ball moved straight up but encountered no bricks, so it returned to its initial position.\n\n     - **Input**: `lt`\n       - **Output**:\n\n         ```\n         w w w w w w w\n         w           w\n         w   1 1 1   w\n         w   1 1     w\n         w           w\n         w           w\n         w g o g g g w\n         Ball count: 4\n         ```\n\n       Explanation: The ball moved diagonally left. Since there was no brick immediately in the way, it hit the wall and reflected horizontally, encountering a brick at (3, 2). After hitting the brick, the ball moved downward, causing the brick to disappear. The ball count is now reduced by 1.\n\n6. **Advanced Modules:**\n   - In later modules of the game:\n     - Each brick has a value indicating its strength. Every hit reduces the strength by 1, and the brick disappears only when its strength reaches 0.\n     - The game consists of 7 modules, each adding new mechanics or rules to enhance gameplay.\n---"
   },
   {
@@ -1058,6 +1366,10 @@ export const LOCAL_ROUND3_PROBLEMS: ZohoProblem[] = [
     "category": "Local App Build",
     "insight": "OOP Application Design practice",
     "difficulty": "App",
+    "links": [
+      { "label": "YouTube", "url": "https://www.youtube.com/watch?v=QmX2NPkJTKg", "platform": "YT" },
+      { "label": "GFG", "url": "https://www.geeksforgeeks.org/design-a-social-media-platform/", "platform": "GFG" }
+    ],
     "description": "1. **Description:**  \n   Design and implement a console-based Social Media Application that allows users to sign up, connect with friends, post updates, interact with posts, and manage notifications.  \n   The system should provide features for user management, friend suggestions, post interactions, and notifications, ensuring a smooth console-based user experience.\n\n\n2. **Modules:**\n   - User Management  \n   - Friend Suggestions  \n   - Friend Request Management  \n   - Post Management  \n   - News Feed  \n   - Notification Management  \n\n\n3. **Functional Requirements:**\n\n   1. **User Signup:**  \n      - Users can sign up by entering:\n        - Name  \n        - Date of Birth (DOB)  \n        - Age  \n        - Location  \n        - Occupation  \n      - All details are entered via the console.\n\n   2. **Friend Suggestions:**  \n      Friend suggestions are displayed in the following order:\n      - **Mutual Friends:**  \n        - Display users who share mutual friends.  \n        - Show the mutual friend count and names (if only one mutual friend).\n      - **Matching Profiles:**  \n        - Show users with matching attributes such as:\n          - Name  \n          - Age  \n          - DOB month  \n          - Location  \n        - Sort by the highest match to the lowest match.\n      - **Other Users:**  \n        - List remaining users who do not fall in the above two categories.\n\n   3. **Friend Request Management:**  \n      - Users can send friend requests to suggested users or by searching for specific users.  \n      - Display pending friend requests with requester details.  \n      - Allow users to accept or reject friend requests.  \n      - Update friendship status once a request is accepted.\n\n   4. **View Friends:**  \n      - Display the list of friends with their details:\n        - Name  \n        - Age  \n        - Location  \n        - Occupation  \n\n   5. **Create Post:**  \n      - Users can create posts that are visible to their friends.  \n      - Example Post:  \n        `\"Enjoying the sunny day in New York! #blessed\"`\n\n   6. **News Feed:**  \n      - Display posts from the user’s friends including:\n        - Post content  \n        - Author  \n        - Like count  \n        - Comments  \n      - New posts appear at the top of the feed.\n\n   7. **Interact with Posts:**  \n      - Users can like or comment on posts.  \n      - Each post shows updated like counts and comments in the feed.\n\n   8. **Share Post:**  \n      - Each post includes a share option.  \n      - Shared posts appear in the recipient’s notifications.  \n      - Recipients can view, like, comment, and share the post again.\n\n   9. **Notification Management:**  \n      - Notifications are generated for:\n        - Friend requests  \n        - Accepted requests  \n        - Shared posts  \n        - Post interactions  \n      - Notifications are cleared when viewed or acted upon.\n\n\n4. **Example Scenarios:**\n\n   1. **User Registration:**  \n      | User | Name | Age | Location | Occupation |\n      |------|------|-----|-----------|-------------|\n      | A | Alice | 25 | New York | Engineer |\n      | B | Bob | 25 | San Francisco | Designer |\n\n   2. **Friend Suggestions:**  \n      - User A sees:  \n        - Users with mutual friends  \n        - Matching profiles (same age or location)  \n        - Other users  \n\n   3. **Sending Friend Requests:**  \n      - User A sends a friend request to User B.  \n      - User B receives a notification:  \n        `\"Alice sent you a friend request.\"`\n\n   4. **Accepting Friend Requests:**  \n      - User B views and accepts the request.  \n      - The system updates their friendship status.  \n      - Both users now appear in each other’s friend lists.\n\n   5. **Creating Posts:**  \n      - User A creates a post:  \n        `\"Enjoying the sunny day in New York! #blessed\"`\n\n   6. **News Feed and Interactions:**  \n      - User B’s feed shows Alice’s post.  \n      - User B likes and comments: `\"Looks amazing!\"`  \n      - User A shares the post with User C.\n\n   7. **Notifications:**  \n      - User C receives a shared post notification.  \n      - User C can like, comment, or share the post again.\n     \n   8. **Sample Solution (up to Friend Request Management):**  \n          [View Solution on Google Drive](https://drive.google.com/file/d/1dq7xnCsSVVWraqWQkU2bWgaKm9tLW2Kk/view)\n----"
   }
 ];
