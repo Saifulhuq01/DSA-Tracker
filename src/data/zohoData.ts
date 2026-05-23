@@ -13,6 +13,8 @@ export interface ZohoLink { label: string; url: string; platform: 'LC' | 'GFG' |
 export interface ZohoProblem {
   id: number; name: string; category: string; insight: string; difficulty: string;
   links?: ZohoLink[];
+  description?: string;
+  code?: string;
 }
 
 export const ROUND2_PROBLEMS: ZohoProblem[] = [

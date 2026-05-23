@@ -1,11 +1,12 @@
 'use client';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import Link from 'next/link';
 import {
   ZOHO_OVERVIEW, ROUND2_PROBLEMS, ROUND3_APPS, ROUND4_QUESTIONS,
   ROUND5_QUESTIONS, THIRTY_DAY_PLAN, FINERACT_NARRATIVE, LAYOFF_NARRATIVE,
   ROUND2_RULES, ROUND3_FRAMEWORK, ZOHO_REVIEWS, ZohoProblem, DayPlan
 } from '@/data/zohoData';
+import { LOCAL_ROUND2_PROBLEMS, LOCAL_ROUND3_PROBLEMS } from '@/data/localZohoData';
 import { useTrackerState } from '@/hooks/useTrackerState';
 import { STATUS_LABELS, ProblemStatus } from '@/data/topics';
 import { 
@@ -15,7 +16,7 @@ import {
 
 type ProblemState = { status: ProblemStatus; dateSolved: string; notes: string; nextReviseDate?: string; companyTags?: string[]; timeSpentMs?: number; [k: string]: any };
 
-const TABS = ['Overview', 'Round 2', 'Round 3', 'Round 4', 'Round 5', '30-Day Plan', 'Reviews'] as const;
+const TABS = ['Overview', 'Round 2', 'Local Round 2', 'Round 3', 'Local Round 3', 'Round 4', 'Round 5', '30-Day Plan', 'Reviews'] as const;
 type Tab = typeof TABS[number];
 
 const diffColor = (d: string) => d === 'Easy' ? '#22c55e' : d === 'Medium' ? '#f59e0b' : d === 'Hard' ? '#ef4444' : '#a78bfa';
@@ -54,6 +55,7 @@ function ProblemTable({
   updateCompanyTags: (topicId: number, problemId: number, tags: string[]) => void;
   setHintProblem: (name: string) => void;
 }) {
+  const [expandedProblemId, setExpandedProblemId] = useState<number | null>(null);
 
   const renderTable = (problemList: ZohoProblem[]) => (
     <div style={{ overflowX: 'auto' }}>
@@ -66,77 +68,157 @@ function ProblemTable({
         <tbody>
           {problemList.map(p => {
             const state = getProblemState(topicId, p.id);
+            const isExpanded = expandedProblemId === p.id;
             return (
-              <tr key={p.id} id={`prob-${topicId}-${p.id}`} style={{ transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(167,139,250,0.03)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.75rem', color: '#a78bfa' }}>{p.id}</td>
-                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontWeight: 600, fontSize: '0.8rem', color: '#e8e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ flex: 1 }}>
-                      {p.links?.find(l => l.platform === 'LC') ? (
-                        <a href={p.links.find(l => l.platform === 'LC')!.url} target="_blank" rel="noopener noreferrer" style={{ color: '#e8e8f0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {p.name} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
-                        </a>
-                      ) : p.name}
-                      <p style={{ fontSize: '0.65rem', color: '#555570', marginTop: 2 }}>{p.insight}</p>
-                      {state.nextReviseDate && state.status === 'solved' && (
-                        <span style={{ fontSize: '0.58rem', color: '#22c55e', display: 'block', marginTop: 2 }}>
-                          📅 Revise: {state.nextReviseDate}
-                        </span>
-                      )}
-                      {state.nextReviseDate && state.status === 'revise' && (
-                        <span style={{ fontSize: '0.58rem', color: '#ef4444', display: 'block', marginTop: 2 }}>
-                          🔔 Overdue — revise now!
-                        </span>
-                      )}
+              <Fragment key={p.id}>
+                <tr id={`prob-${topicId}-${p.id}`} style={{ transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(167,139,250,0.03)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.75rem', color: '#a78bfa' }}>{p.id}</td>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontWeight: 600, fontSize: '0.8rem', color: '#e8e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          {p.links?.find(l => l.platform === 'LC') ? (
+                            <a href={p.links.find(l => l.platform === 'LC')!.url} target="_blank" rel="noopener noreferrer" style={{ color: '#e8e8f0', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                              {p.name} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                            </a>
+                          ) : <span>{p.name}</span>}
+                          
+                          {(p.description || p.code) && (
+                            <button 
+                              onClick={() => setExpandedProblemId(isExpanded ? null : p.id)}
+                              style={{ 
+                                background: isExpanded ? 'rgba(167, 139, 250, 0.2)' : 'rgba(167, 139, 250, 0.08)', 
+                                color: '#a78bfa', 
+                                border: '1px solid rgba(167, 139, 250, 0.25)', 
+                                borderRadius: 4, 
+                                padding: '2px 8px', 
+                                fontSize: '0.62rem', 
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                transition: 'all 0.15s',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(167, 139, 250, 0.25)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = isExpanded ? 'rgba(167, 139, 250, 0.2)' : 'rgba(167, 139, 250, 0.08)'; }}
+                            >
+                              {isExpanded ? '▲ Hide Details' : '▼ View Details'}
+                              {p.code && <span style={{ color: '#22c55e', fontSize: '0.58rem' }}>(Code)</span>}
+                            </button>
+                          )}
+                        </div>
+                        <p style={{ fontSize: '0.65rem', color: '#555570', marginTop: 2 }}>{p.insight}</p>
+                        {state.nextReviseDate && state.status === 'solved' && (
+                          <span style={{ fontSize: '0.58rem', color: '#22c55e', display: 'block', marginTop: 2 }}>
+                            📅 Revise: {state.nextReviseDate}
+                          </span>
+                        )}
+                        {state.nextReviseDate && state.status === 'revise' && (
+                          <span style={{ fontSize: '0.58rem', color: '#ef4444', display: 'block', marginTop: 2 }}>
+                            🔔 Overdue — revise now!
+                          </span>
+                        )}
+                      </div>
+                      <button onClick={() => setHintProblem(p.name)} style={{ background: 'none', border: 'none', color: '#8888a0', cursor: 'pointer', opacity: 0.5 }}>🤖</button>
                     </div>
-                    <button onClick={() => setHintProblem(p.name)} style={{ background: 'none', border: 'none', color: '#8888a0', cursor: 'pointer', opacity: 0.5 }}>🤖</button>
-                  </div>
-                </td>
-                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
-                  <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.68rem', fontWeight: 700, color: diffColor(p.difficulty), background: `${diffColor(p.difficulty)}15`, border: `1px solid ${diffColor(p.difficulty)}30` }}>{p.difficulty}</span>
-                </td>
-                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', textAlign: 'center' }}>
-                  <button className={`status-btn status-${state.status}`} onClick={() => {
-                    const next = cycleStatus(topicId, p.id);
-                    if (next === 'solved') setConfidenceTarget({ topicId, problemId: p.id });
-                  }} title="Click to cycle status" style={{ padding: '4px 8px', fontSize: '0.65rem' }}>
-                    {STATUS_LABELS[state.status]}
-                  </button>
-                </td>
-                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontFamily: 'monospace', fontSize: '0.72rem', color: state.dateSolved ? '#e8e8f0' : '#555570' }}>
-                  {state.dateSolved || '—'}
-                </td>
-                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', textAlign: 'center' }}>
-                  <ProblemTimer onStop={(ms) => updateTimeSpent(topicId, p.id, ms)} />
-                  {state.timeSpentMs ? (
-                    <span style={{ fontSize: '0.55rem', color: '#555570', display: 'block' }}>
-                      {Math.floor(state.timeSpentMs / 60000)}m
-                    </span>
-                  ) : null}
-                </td>
-                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
-                  <CompanyTagInput tags={state.companyTags || []} onChange={(tags) => updateCompanyTags(topicId, p.id, tags)} />
-                </td>
-                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
-                  {p.links && p.links.length > 0 ? (
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      {p.links.map((link, i) => {
-                        const s = platformStyle(link.platform);
-                        return (
-                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{ padding: '2px 7px', borderRadius: 4, fontSize: '0.62rem', fontWeight: 700, background: s.bg, color: s.color, border: `1px solid ${s.border}`, textDecoration: 'none', whiteSpace: 'nowrap', transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                            {link.platform === 'YT' && '▶ '}{link.label}
-                          </a>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <span style={{ fontSize: '0.62rem', color: '#555570', fontStyle: 'italic' }}>No links</span>
-                  )}
-                </td>
-                <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', minWidth: 200 }}>
-                  <RichNotesInput initialNotes={state.notes || ''} onSave={(val) => updateNotes(topicId, p.id, val)} />
-                </td>
-              </tr>
+                  </td>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.68rem', fontWeight: 700, color: diffColor(p.difficulty), background: `${diffColor(p.difficulty)}15`, border: `1px solid ${diffColor(p.difficulty)}30` }}>{p.difficulty}</span>
+                  </td>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', textAlign: 'center' }}>
+                    <button className={`status-btn status-${state.status}`} onClick={() => {
+                      const next = cycleStatus(topicId, p.id);
+                      if (next === 'solved') setConfidenceTarget({ topicId, problemId: p.id });
+                    }} title="Click to cycle status" style={{ padding: '4px 8px', fontSize: '0.65rem' }}>
+                      {STATUS_LABELS[state.status]}
+                    </button>
+                  </td>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontFamily: 'monospace', fontSize: '0.72rem', color: state.dateSolved ? '#e8e8f0' : '#555570' }}>
+                    {state.dateSolved || '—'}
+                  </td>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', textAlign: 'center' }}>
+                    <ProblemTimer onStop={(ms) => updateTimeSpent(topicId, p.id, ms)} />
+                    {state.timeSpentMs ? (
+                      <span style={{ fontSize: '0.55rem', color: '#555570', display: 'block' }}>
+                        {Math.floor(state.timeSpentMs / 60000)}m
+                      </span>
+                    ) : null}
+                  </td>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
+                    <CompanyTagInput tags={state.companyTags || []} onChange={(tags) => updateCompanyTags(topicId, p.id, tags)} />
+                  </td>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
+                    {p.links && p.links.length > 0 ? (
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {p.links.map((link, i) => {
+                          const s = platformStyle(link.platform);
+                          return (
+                            <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{ padding: '2px 7px', borderRadius: 4, fontSize: '0.62rem', fontWeight: 700, background: s.bg, color: s.color, border: `1px solid ${s.border}`, textDecoration: 'none', whiteSpace: 'nowrap', transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              {link.platform === 'YT' && '▶ '}{link.label}
+                            </a>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.62rem', color: '#555570', fontStyle: 'italic' }}>No links</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', minWidth: 200 }}>
+                    <RichNotesInput initialNotes={state.notes || ''} onSave={(val) => updateNotes(topicId, p.id, val)} />
+                  </td>
+                </tr>
+                {isExpanded && (p.description || p.code) && (
+                  <tr>
+                    <td colSpan={9} style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.25)', borderBottom: '1px solid #252535' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {p.description && (
+                          <div>
+                            <h4 style={{ color: '#a78bfa', fontSize: '0.8rem', fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              📋 Problem Description
+                            </h4>
+                            <pre style={{ 
+                              whiteSpace: 'pre-wrap', 
+                              fontFamily: 'inherit', 
+                              fontSize: '0.78rem', 
+                              color: '#a3a3c2', 
+                              margin: 0, 
+                              lineHeight: 1.6,
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              padding: '12px 16px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(255, 255, 255, 0.05)'
+                            }}>
+                              {p.description}
+                            </pre>
+                          </div>
+                        )}
+                        {p.code && (
+                          <div>
+                            <h4 style={{ color: '#22c55e', fontSize: '0.8rem', fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              💻 Java Solution Code
+                            </h4>
+                            <pre style={{ 
+                              background: '#0a0a0f', 
+                              border: '1px solid #252535', 
+                              borderRadius: 8, 
+                              padding: '14px 18px', 
+                              overflowX: 'auto', 
+                              fontFamily: 'monospace', 
+                              fontSize: '0.75rem', 
+                              color: '#a78bfa', 
+                              margin: 0,
+                              lineHeight: 1.5
+                            }}>
+                              <code>{p.code}</code>
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             );
           })}
         </tbody>
@@ -227,19 +309,23 @@ export default function ZohoInterviewPage() {
   useEffect(() => {
     if (!search || search.length < 3) return;
     const s = search.toLowerCase();
-    const allProbs = [...ROUND2_PROBLEMS, ...ROUND3_APPS, ...ROUND4_QUESTIONS, ...ROUND5_QUESTIONS];
+    const allProbs = [...ROUND2_PROBLEMS, ...LOCAL_ROUND2_PROBLEMS, ...ROUND3_APPS, ...LOCAL_ROUND3_PROBLEMS, ...ROUND4_QUESTIONS, ...ROUND5_QUESTIONS];
     const match = allProbs.find(p => p.name.toLowerCase().includes(s));
     if (match) {
       // Find which tab it belongs to
       if (ROUND2_PROBLEMS.includes(match)) setActiveTab('Round 2');
+      else if (LOCAL_ROUND2_PROBLEMS.includes(match)) setActiveTab('Local Round 2');
       else if (ROUND3_APPS.includes(match)) setActiveTab('Round 3');
+      else if (LOCAL_ROUND3_PROBLEMS.includes(match)) setActiveTab('Local Round 3');
       else if (ROUND4_QUESTIONS.includes(match)) setActiveTab('Round 4');
       else if (ROUND5_QUESTIONS.includes(match)) setActiveTab('Round 5');
 
       setTimeout(() => {
         const id = match.id;
         const tid = ROUND2_PROBLEMS.includes(match) ? 202 : 
+                    LOCAL_ROUND2_PROBLEMS.includes(match) ? 206 :
                     ROUND3_APPS.includes(match) ? 203 : 
+                    LOCAL_ROUND3_PROBLEMS.includes(match) ? 207 :
                     ROUND4_QUESTIONS.includes(match) ? 204 : 205;
         const el = document.getElementById(`prob-${tid}-${id}`);
         if (el) {
@@ -265,7 +351,9 @@ export default function ZohoInterviewPage() {
       });
     };
     checkProblems(202, ROUND2_PROBLEMS);
+    checkProblems(206, LOCAL_ROUND2_PROBLEMS);
     checkProblems(203, ROUND3_APPS);
+    checkProblems(207, LOCAL_ROUND3_PROBLEMS);
     checkProblems(204, ROUND4_QUESTIONS);
     checkProblems(205, ROUND5_QUESTIONS);
     return due;
@@ -377,6 +465,23 @@ export default function ZohoInterviewPage() {
           </div>
         )}
 
+        {activeTab === 'Local Round 2' && (
+          <div>
+            <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#f59e0b' }}>Local Round 2 — Folder Practice</h2>
+                <p style={{ fontSize: '0.72rem', color: '#8888a0' }}>Practice bank loaded directly from your local `ZOHO-interview-Questions/Round 2` folder</p>
+              </div>
+              <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)' }}>{LOCAL_ROUND2_PROBLEMS.length} Questions</span>
+            </div>
+            <ProblemTable 
+              problems={LOCAL_ROUND2_PROBLEMS} title="Local Round 2 Problem Bank" topicId={206} 
+              setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+            />
+          </div>
+        )}
+
         {activeTab === 'Round 3' && (
           <div>
             <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
@@ -396,6 +501,23 @@ export default function ZohoInterviewPage() {
                 The person who wins Round 3 is NOT the best algorithm solver. It is the person who builds a working application AND talks through every decision while building it. Build the Transaction Manager (Day 25). Time yourself. Narrate out loud. If you can build it in 90 min while explaining clearly, you will clear Round 3.
               </p>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'Local Round 3' && (
+          <div>
+            <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#ef4444' }}>Local Round 3 — App Designs</h2>
+                <p style={{ fontSize: '0.72rem', color: '#8888a0' }}>App design questions loaded directly from your local `ZOHO-interview-Questions/Round 3` folder</p>
+              </div>
+              <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)' }}>{LOCAL_ROUND3_PROBLEMS.length} Apps</span>
+            </div>
+            <ProblemTable 
+              problems={LOCAL_ROUND3_PROBLEMS} title="Local Round 3 Application Bank" topicId={207} 
+              setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+            />
           </div>
         )}
 
