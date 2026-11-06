@@ -35,20 +35,20 @@ export const MAX_LOG = 30;
 export const RATING_META: Record<RecallRating, { label: string; color: string; bg: string; desc: string }> = {
   red: {
     label: 'Red',
-    color: '#ef4444',
-    bg: 'rgba(239,68,68,0.12)',
+    color: '#e5534b',
+    bg: 'rgba(229,83,75,0.12)',
     desc: "Couldn't solve it without reading the explanation",
   },
   yellow: {
     label: 'Yellow',
-    color: '#f59e0b',
-    bg: 'rgba(245,158,11,0.12)',
+    color: '#d9a441',
+    bg: 'rgba(217,164,65,0.12)',
     desc: 'Solved alone, but needed a hint, took 30+ min, or had bugs',
   },
   green: {
     label: 'Green',
-    color: '#22c55e',
-    bg: 'rgba(34,197,94,0.12)',
+    color: '#3fb68b',
+    bg: 'rgba(63,182,139,0.12)',
     desc: 'Solved from a blank page in ~20–25 min with correct complexity',
   },
 };

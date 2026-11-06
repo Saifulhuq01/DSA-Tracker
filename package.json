@@ -10,8 +10,11 @@
     "roadmap:check": "node --no-warnings --import ./scripts/ts-resolve.mjs --experimental-transform-types scripts/check-roadmap.ts"
   },
   "dependencies": {
+    "canvas-confetti": "1.9.3",
     "firebase": "^12.11.0",
     "html2canvas": "^1.4.1",
+    "lucide-react": "1.59.0",
+    "motion": "14.4.0",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -19,6 +22,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "1.6.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
