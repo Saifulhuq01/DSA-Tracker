@@ -8,7 +8,8 @@ import { useAuth } from '@/context/AuthContext';
 import {
   XPLevelBadge, DailyQuestsPanel, WeaknessPanel, MockInterviewModal,
   ConfidencePopup, RevisionDueWidget, ProblemTimer, CompanyTagInput,
-  GlobalPomodoro, CustomProblemModal, RichNotesInput, ShareCardModal, AIHintModal
+  GlobalPomodoro, CustomProblemModal, RichNotesInput, ShareCardModal, AIHintModal,
+  RecallCell, KeyInsightInput, RevisitQueuePanel
 } from './components';
 
 /* ── Tiny SVG Icons ── */
@@ -197,7 +198,11 @@ export default function Home() {
     deleteCustomProblem,
     addPomodoroSession,
     exportData,
-    importData
+    importData,
+    rateAttempt,
+    updateKeyInsight,
+    updateRevisitDate,
+    revisitQueue
   } = useTrackerState();
 
   const [expandedTopics, setExpandedTopics] = useState<Set<number>>(new Set([1]));
@@ -268,6 +273,15 @@ export default function Home() {
     setExpandedTopics((prev) => new Set(prev).add(id));
     topicRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+
+  // Jump to a problem from the revisit queue (Zoho items live on the Zoho page)
+  const openQueueItem = useCallback((item: { topicId: number; problemId: number; isZoho: boolean }) => {
+    if (item.isZoho) { window.location.assign('/zoho-interview'); return; }
+    scrollToTopic(item.topicId);
+    setTimeout(() => {
+      document.getElementById(`prob-${item.topicId}-${item.problemId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  }, [scrollToTopic]);
 
   const isTopicLocked = useCallback(
     (topicId: number) => topicId >= 13 && !foundationComplete,
@@ -436,6 +450,9 @@ export default function Home() {
         {/* Daily Quests */}
         <DailyQuestsPanel quests={dailyQuests} />
 
+        {/* Revisit queue (red / yellow / green ladder) */}
+        <RevisitQueuePanel queue={revisitQueue} onOpen={openQueueItem} />
+
         {/* Revision Due */}
         <RevisionDueWidget items={revisionDueToday} />
 
@@ -463,6 +480,9 @@ export default function Home() {
 
         {/* Bottom actions */}
         <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Link href="/roadmap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none' }}>
+            🗺️ Pattern Roadmap
+          </Link>
           <Link href="/zoho-interview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg, rgba(167,139,250,0.15), rgba(99,102,241,0.12))', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', transition: 'all 0.2s', boxShadow: '0 0 16px rgba(167,139,250,0.08)' }}>
             🏢 Zoho Interview
           </Link>
@@ -712,6 +732,7 @@ export default function Home() {
                           <th style={{ width: 80 }}>Platform</th>
                           <th style={{ width: 95 }}>Link / ID</th>
                           <th style={{ width: 115, textAlign: 'center' }}>Status</th>
+                          <th style={{ width: 112, textAlign: 'center' }} title="Red / Yellow / Green for today's attempt, and the next revisit date">Recall</th>
                           <th style={{ width: 100 }}>Date Solved</th>
                           <th style={{ width: 70, textAlign: 'center' }}>Timer</th>
                           <th style={{ width: 50, textAlign: 'center' }}>Tags</th>
@@ -723,7 +744,7 @@ export default function Home() {
                           const state = getProblemState(topic.id, problem.id);
                           const isSolved = state.status === 'solved';
                           return (
-                            <tr key={problem.id}>
+                            <tr key={problem.id} id={`prob-${topic.id}-${problem.id}`}>
                               <td style={{ textAlign: 'center', fontFamily: 'var(--font-geist-mono)', fontWeight: 600, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                 {problem.linkId === 'Custom' ? 'C' : problem.id}
                               </td>
@@ -756,7 +777,8 @@ export default function Home() {
                                     )}
                                   </div>
                                 </div>
-                                {state.nextReviseDate && state.status === 'solved' && (
+                                <KeyInsightInput value={state.keyInsight || ''} onSave={(val) => updateKeyInsight(topic.id, problem.id, val)} />
+                                {state.nextReviseDate && state.status === 'solved' && !state.attemptLog?.length && (
                                   <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>
                                     📅 Revise: {state.nextReviseDate}
                                   </span>
@@ -768,12 +790,20 @@ export default function Home() {
                               <td style={{ textAlign: 'center' }}>
                                 <button className={`status-btn status-${state.status}`} onClick={() => {
                                   const next = cycleStatus(topic.id, problem.id);
-                                  if (next === 'solved') {
+                                  // Problems on the recall ladder are scheduled by their R/Y/G rating instead
+                                  if (next === 'solved' && !state.attemptLog?.length) {
                                     setConfidenceTarget({ topicId: topic.id, problemId: problem.id });
                                   }
                                 }} title="Click to cycle status">
                                   {STATUS_LABELS[state.status]}
                                 </button>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <RecallCell
+                                  state={state}
+                                  onRate={(r) => rateAttempt(topic.id, problem.id, r)}
+                                  onDateChange={(d) => updateRevisitDate(topic.id, problem.id, d)}
+                                />
                               </td>
                               <td style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.72rem', color: state.dateSolved ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                                 {state.dateSolved || '—'}

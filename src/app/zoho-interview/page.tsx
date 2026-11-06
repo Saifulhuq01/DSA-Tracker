@@ -11,8 +11,16 @@ import { useTrackerState } from '@/hooks/useTrackerState';
 import { STATUS_LABELS, ProblemStatus } from '@/data/topics';
 import { 
   ConfidencePopup, RevisionDueWidget, ProblemTimer, 
-  CompanyTagInput, RichNotesInput, AIHintModal 
+  CompanyTagInput, RichNotesInput, AIHintModal,
+  RecallCell, KeyInsightInput
 } from '../components';
+import type { RecallRating } from '@/lib/revisit';
+
+type RecallActions = {
+  rate: (topicId: number, problemId: number, rating: RecallRating) => void;
+  saveInsight: (topicId: number, problemId: number, text: string) => void;
+  setDate: (topicId: number, problemId: number, date: string) => void;
+};
 
 type ProblemState = { status: ProblemStatus; dateSolved: string; notes: string; nextReviseDate?: string; companyTags?: string[]; timeSpentMs?: number; [k: string]: any };
 
@@ -44,7 +52,7 @@ const platformStyle = (p: string) => {
 function ProblemTable({ 
   problems, title, groupByCategory = false, topicId, 
   setConfidenceTarget, getProblemState, cycleStatus,
-  updateNotes, updateTimeSpent, updateCompanyTags, setHintProblem
+  updateNotes, updateTimeSpent, updateCompanyTags, setHintProblem, recall
 }: { 
   problems: ZohoProblem[]; title: string; groupByCategory?: boolean; topicId: number; 
   setConfidenceTarget: (t: { topicId: number, problemId: number } | null) => void; 
@@ -54,6 +62,7 @@ function ProblemTable({
   updateTimeSpent: (topicId: number, problemId: number, ms: number) => void;
   updateCompanyTags: (topicId: number, problemId: number, tags: string[]) => void;
   setHintProblem: (name: string) => void;
+  recall: RecallActions;
 }) {
   const [expandedProblemId, setExpandedProblemId] = useState<number | null>(null);
 
@@ -61,7 +70,7 @@ function ProblemTable({
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
         <thead>
-          <tr>{['#', 'Problem', 'Diff', 'Status', 'Date', 'Timer', 'Tags', 'Resources', 'Notes'].map(h => (
+          <tr>{['#', 'Problem', 'Diff', 'Status', 'Recall', 'Date', 'Timer', 'Tags', 'Resources', 'Notes'].map(h => (
             <th key={h} style={{ background: '#12121a', color: '#8888a0', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #303045', whiteSpace: 'nowrap' }}>{h}</th>
           ))}</tr>
         </thead>
@@ -109,7 +118,8 @@ function ProblemTable({
                           )}
                         </div>
                         <p style={{ fontSize: '0.65rem', color: '#555570', marginTop: 2 }}>{p.insight}</p>
-                        {state.nextReviseDate && state.status === 'solved' && (
+                        <KeyInsightInput value={state.keyInsight || ''} onSave={(val) => recall.saveInsight(topicId, p.id, val)} />
+                        {state.nextReviseDate && state.status === 'solved' && !state.attemptLog?.length && (
                           <span style={{ fontSize: '0.58rem', color: '#22c55e', display: 'block', marginTop: 2 }}>
                             📅 Revise: {state.nextReviseDate}
                           </span>
@@ -129,10 +139,18 @@ function ProblemTable({
                   <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', textAlign: 'center' }}>
                     <button className={`status-btn status-${state.status}`} onClick={() => {
                       const next = cycleStatus(topicId, p.id);
-                      if (next === 'solved') setConfidenceTarget({ topicId, problemId: p.id });
+                      // Problems on the recall ladder are scheduled by their R/Y/G rating instead
+                      if (next === 'solved' && !state.attemptLog?.length) setConfidenceTarget({ topicId, problemId: p.id });
                     }} title="Click to cycle status" style={{ padding: '4px 8px', fontSize: '0.65rem' }}>
                       {STATUS_LABELS[state.status]}
                     </button>
+                  </td>
+                  <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535' }}>
+                    <RecallCell
+                      state={state}
+                      onRate={(r) => recall.rate(topicId, p.id, r)}
+                      onDateChange={(d) => recall.setDate(topicId, p.id, d)}
+                    />
                   </td>
                   <td style={{ padding: '8px 12px', borderBottom: '1px solid #252535', fontFamily: 'monospace', fontSize: '0.72rem', color: state.dateSolved ? '#e8e8f0' : '#555570' }}>
                     {state.dateSolved || '—'}
@@ -170,7 +188,7 @@ function ProblemTable({
                 </tr>
                 {isExpanded && (p.description || p.code) && (
                   <tr>
-                    <td colSpan={9} style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.25)', borderBottom: '1px solid #252535' }}>
+                    <td colSpan={10} style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.25)', borderBottom: '1px solid #252535' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         {p.description && (
                           <div>
@@ -302,8 +320,13 @@ export default function ZohoInterviewPage() {
   const [hintProblem, setHintProblem] = useState<string | null>(null);
   const { 
     setSolveConfidence, data, getProblemState, cycleStatus,
-    updateNotes, updateTimeSpent, updateCompanyTags
+    updateNotes, updateTimeSpent, updateCompanyTags,
+    rateAttempt, updateKeyInsight, updateRevisitDate
   } = useTrackerState();
+  const recall: RecallActions = useMemo(
+    () => ({ rate: rateAttempt, saveInsight: updateKeyInsight, setDate: updateRevisitDate }),
+    [rateAttempt, updateKeyInsight, updateRevisitDate]
+  );
 
   // Search auto-scroll
   useEffect(() => {
@@ -367,6 +390,9 @@ export default function ZohoInterviewPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: '#8888a0', fontSize: '0.8rem', fontWeight: 600, padding: '6px 12px', borderRadius: 8, border: '1px solid #252535', background: 'rgba(255,255,255,0.02)', transition: 'all 0.15s' }}>
             ← Back to Tracker
+          </Link>
+          <Link href="/roadmap" style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', color: '#fbbf24', fontSize: '0.8rem', fontWeight: 600, padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.05)' }}>
+            🗺️ Roadmap
           </Link>
           <div>
             <h1 style={{ fontSize: '1.1rem', fontWeight: 800, background: 'linear-gradient(135deg, #a78bfa, #818cf8, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -460,7 +486,7 @@ export default function ZohoInterviewPage() {
             <ProblemTable 
               problems={ROUND2_PROBLEMS} title="Problem Bank — Confirmed Zoho Questions" groupByCategory={true} topicId={202} 
               setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
-              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem} recall={recall}
             />
           </div>
         )}
@@ -477,7 +503,7 @@ export default function ZohoInterviewPage() {
             <ProblemTable 
               problems={LOCAL_ROUND2_PROBLEMS} title="Local Round 2 Problem Bank" topicId={206} 
               setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
-              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem} recall={recall}
             />
           </div>
         )}
@@ -493,7 +519,7 @@ export default function ZohoInterviewPage() {
             <ProblemTable 
               problems={ROUND3_APPS} title="Application Bank — Verified Zoho Problem Types" topicId={203} 
               setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
-              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem} recall={recall}
             />
             <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 12, padding: '18px 22px' }}>
               <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#a78bfa', marginBottom: 8 }}>🏆 The Winning Formula</h4>
@@ -516,7 +542,7 @@ export default function ZohoInterviewPage() {
             <ProblemTable 
               problems={LOCAL_ROUND3_PROBLEMS} title="Local Round 3 Application Bank" topicId={207} 
               setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
-              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem} recall={recall}
             />
           </div>
         )}
@@ -538,7 +564,7 @@ export default function ZohoInterviewPage() {
             <ProblemTable 
               problems={ROUND4_QUESTIONS} title="Full Question Bank" topicId={204} 
               setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
-              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem} recall={recall}
             />
             <InfoCard title="Fineract Pitch — Say in 90 Seconds" icon="🛡️" items={FINERACT_NARRATIVE} />
           </div>
@@ -561,7 +587,7 @@ export default function ZohoInterviewPage() {
             <ProblemTable 
               problems={ROUND5_QUESTIONS} title="HR Questions + How to Answer" topicId={205} 
               setConfidenceTarget={setConfidenceTarget} getProblemState={getProblemState} cycleStatus={cycleStatus}
-              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem}
+              updateNotes={updateNotes} updateTimeSpent={updateTimeSpent} updateCompanyTags={updateCompanyTags} setHintProblem={setHintProblem} recall={recall}
             />
             <InfoCard title="Layoff Narrative — Say This Exactly" icon="💬" items={LAYOFF_NARRATIVE} />
           </div>

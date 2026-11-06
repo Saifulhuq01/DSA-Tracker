@@ -3,7 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import html2canvas from 'html2canvas';
-import type { DailyQuestData, WeaknessReport, XPData, PomodoroData } from '@/hooks/useTrackerState';
+import type { DailyQuestData, WeaknessReport, XPData, PomodoroData, ProblemState } from '@/hooks/useTrackerState';
+import {
+  type RecallRating, RATING_META, REVISIT_INTERVALS, GREENS_TO_RETIRE, RETIRE_RULE_LABEL,
+  localToday, formatShortDate,
+} from '@/lib/revisit';
 
 /* ── XP & Level Badge ── */
 export function XPLevelBadge({ xpData }: { xpData: XPData }) {
@@ -669,6 +673,212 @@ export function AIHintModal({ problemName, onClose }: { problemName: string; onC
           Got it!
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ── Recall: Red / Yellow / Green rating + next revisit (24-week plan) ── */
+const RATINGS: RecallRating[] = ['red', 'yellow', 'green'];
+const RUNG_LABELS = ['next day', '+7d', '+3w', '+6w'];
+
+export function RecallCell({ state, onRate, onDateChange }: {
+  state: Pick<ProblemState, 'rating' | 'attemptLog' | 'nextReviseDate' | 'retired' | 'revisitStep' | 'greenStreak'>;
+  onRate: (rating: RecallRating) => void;
+  onDateChange: (date: string) => void;
+}) {
+  const today = localToday();
+  const log = state.attemptLog || [];
+  const ratedToday = log.length > 0 && log[log.length - 1].date === today;
+  const next = state.nextReviseDate || '';
+  const onLadder = log.length > 0;
+  const due = onLadder && !state.retired && !!next && next <= today;
+  const history = log.slice(-8).map(a => `${formatShortDate(a.date)}: ${RATING_META[a.rating].label}`).join('\n');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 104 }}>
+      <div style={{ display: 'flex', gap: 3 }} title={history ? `Attempts:\n${history}` : 'Log how today\'s attempt went'}>
+        {RATINGS.map(r => {
+          const m = RATING_META[r];
+          const active = state.rating === r;
+          return (
+            <button
+              key={r}
+              onClick={() => onRate(r)}
+              title={`${m.label}: ${m.desc}${ratedToday ? '\n(replaces today\'s rating)' : ''}`}
+              aria-label={`Rate ${m.label}`}
+              aria-pressed={active}
+              style={{
+                width: 26, height: 20, borderRadius: 5, cursor: 'pointer',
+                fontSize: '0.6rem', fontWeight: 800,
+                color: active ? '#0a0a0f' : m.color,
+                background: active ? m.color : m.bg,
+                border: `1px solid ${active ? m.color : `${m.color}40`}`,
+                transition: 'all 0.12s',
+              }}
+            >
+              {m.label[0]}
+            </button>
+          );
+        })}
+      </div>
+      {!onLadder ? (
+        <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)' }}>not rated</span>
+      ) : state.retired ? (
+        <span style={{ fontSize: '0.58rem', color: 'var(--level-easy)', fontWeight: 700 }} title={`Retired: ${RETIRE_RULE_LABEL}`}>🏁 Retired</span>
+      ) : (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.55rem', color: due ? 'var(--level-hard)' : 'var(--text-muted)' }}
+          title={`Rung: ${RUNG_LABELS[state.revisitStep ?? 0] ?? ''} · long-gap greens ${state.greenStreak ?? 0}/${GREENS_TO_RETIRE} (${RETIRE_RULE_LABEL}). Click to move the date.`}>
+          {due ? '🔔' : '📅'}
+          <input
+            type="date"
+            value={next}
+            onChange={(e) => e.target.value && onDateChange(e.target.value)}
+            style={{
+              background: 'transparent', border: 'none', padding: 0, width: 92,
+              color: 'inherit', fontSize: '0.6rem', fontFamily: 'var(--font-geist-mono), monospace',
+              colorScheme: 'dark', cursor: 'pointer',
+            }}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+/* ── Key insight: one sentence, your own words ── */
+export function KeyInsightInput({ value, onSave }: { value: string; onSave: (text: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(value);
+
+  useEffect(() => { if (!editing) setText(value); }, [value, editing]);
+
+  const commit = () => {
+    setEditing(false);
+    if (text.trim() !== value) onSave(text);
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={text}
+        maxLength={240}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit();
+          if (e.key === 'Escape') { setText(value); setEditing(false); }
+        }}
+        placeholder="The one idea that makes it optimal…"
+        style={{
+          width: '100%', boxSizing: 'border-box', marginTop: 3, padding: '3px 6px', borderRadius: 5,
+          background: 'var(--bg-input)', border: '1px solid var(--accent-primary)',
+          color: 'var(--text-primary)', fontSize: '0.68rem',
+        }}
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      title="Key insight — click to edit"
+      style={{
+        display: 'block', width: '100%', textAlign: 'left', marginTop: 3, padding: '1px 0',
+        background: 'none', border: 'none', cursor: 'text',
+        fontSize: '0.66rem', lineHeight: 1.4, fontWeight: value ? 500 : 400,
+        color: value ? '#fbbf24' : 'var(--text-muted)', opacity: value ? 0.95 : 0.6,
+      }}
+    >
+      💡 {value || 'Add key insight'}
+    </button>
+  );
+}
+
+/* ── Revisit queue (sorted by next revisit) ── */
+export interface RevisitQueueData {
+  items: {
+    key: string; topicId: number; problemId: number; name: string; source: string; isZoho: boolean;
+    rating: RecallRating; nextReviseDate: string; daysUntil: number; keyInsight: string;
+  }[];
+  counts: { red: number; yellow: number; green: number; retired: number; untriaged: number };
+  today: string;
+}
+
+export function RevisitQueuePanel({ queue, onOpen }: {
+  queue: RevisitQueueData;
+  onOpen: (item: RevisitQueueData['items'][number]) => void;
+}) {
+  const [showUpcoming, setShowUpcoming] = useState(false);
+  const { items, counts } = queue;
+  const due = items.filter(i => i.daysUntil <= 0);
+  const upcoming = items.filter(i => i.daysUntil > 0 && i.daysUntil <= 14);
+  const onLadder = counts.red + counts.yellow + counts.green + counts.retired;
+  if (!onLadder && !counts.untriaged) return null;
+
+  const list = showUpcoming ? upcoming : due;
+
+  return (
+    <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          🧠 Revisit queue
+        </span>
+        <div style={{ display: 'flex', gap: 6, fontSize: '0.58rem', fontWeight: 700, fontFamily: 'var(--font-geist-mono), monospace' }}>
+          <span style={{ color: RATING_META.red.color }} title="Red">{counts.red}</span>
+          <span style={{ color: RATING_META.yellow.color }} title="Yellow">{counts.yellow}</span>
+          <span style={{ color: RATING_META.green.color }} title="Green">{counts.green}</span>
+          <span style={{ color: 'var(--text-muted)' }} title="Retired">🏁{counts.retired}</span>
+        </div>
+      </div>
+
+      {counts.untriaged > 0 && (
+        <p style={{ fontSize: '0.58rem', color: 'var(--text-muted)', marginBottom: 6 }}>
+          {counts.untriaged} solved problem{counts.untriaged === 1 ? '' : 's'} not rated yet
+        </p>
+      )}
+
+      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+        {([['Due', due.length, false], ['Next 14d', upcoming.length, true]] as const).map(([label, n, up]) => (
+          <button key={label} onClick={() => setShowUpcoming(up)} style={{
+            flex: 1, padding: '3px 0', borderRadius: 5, cursor: 'pointer', fontSize: '0.58rem', fontWeight: 700,
+            background: showUpcoming === up ? 'rgba(167,139,250,0.12)' : 'transparent',
+            color: showUpcoming === up ? 'var(--accent-primary)' : 'var(--text-muted)',
+            border: `1px solid ${showUpcoming === up ? 'rgba(167,139,250,0.3)' : 'var(--border-subtle)'}`,
+          }}>{label} ({n})</button>
+        ))}
+      </div>
+
+      <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+        {list.length === 0 && (
+          <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textAlign: 'center', padding: '4px 0' }}>
+            {showUpcoming ? 'Nothing in the next 2 weeks' : 'Nothing due today ✓'}
+          </p>
+        )}
+        {list.map(item => {
+          const m = RATING_META[item.rating];
+          const when = item.daysUntil < 0 ? `+${-item.daysUntil}d late` : item.daysUntil === 0 ? 'today' : formatShortDate(item.nextReviseDate);
+          return (
+            <button key={item.key} onClick={() => onOpen(item)} title={item.keyInsight ? `💡 ${item.keyInsight}` : 'No key insight yet'}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 6, textAlign: 'left',
+                padding: '4px 8px', marginBottom: 3, borderRadius: 6, cursor: 'pointer',
+                background: item.daysUntil < 0 ? 'rgba(239,68,68,0.06)' : 'rgba(167,139,250,0.04)',
+                border: `1px solid ${item.daysUntil < 0 ? 'rgba(239,68,68,0.15)' : 'var(--border-subtle)'}`,
+              }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {item.name}
+                {item.isZoho && <span style={{ color: 'var(--text-muted)', fontSize: '0.55rem' }}> · {item.source}</span>}
+              </span>
+              <span style={{ fontSize: '0.55rem', fontWeight: 700, flexShrink: 0, color: item.daysUntil < 0 ? 'var(--level-hard)' : 'var(--text-muted)' }}>{when}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p style={{ fontSize: '0.52rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'center', opacity: 0.7 }}>
+        Ladder: {REVISIT_INTERVALS.map(d => `${d}d`).join(' → ')} · {RETIRE_RULE_LABEL}
+      </p>
     </div>
   );
 }

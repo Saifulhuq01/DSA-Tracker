@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "roadmap:generate": "node scripts/parse-roadmap.mjs",
+    "roadmap:check": "node --no-warnings --import ./scripts/ts-resolve.mjs --experimental-transform-types scripts/check-roadmap.ts"
   },
   "dependencies": {
     "firebase": "^12.11.0",
