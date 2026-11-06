@@ -1,8 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  ArrowLeft, ArrowUpRight, ArrowLeftRight, BarChart3, BellRing, Building2, CalendarDays, Check,
+  CircleCheck, Eye, EyeOff, Flag, Lightbulb, Search, Star, Trophy,
+} from 'lucide-react';
 import { ROADMAP_TOPICS, PLAN_START_DATE, type RoadmapTopic } from '@/data/roadmap';
 import type { Problem } from '@/data/topics';
 import { useTrackerState } from '@/hooks/useTrackerState';
@@ -12,26 +17,36 @@ import {
   type RecallStatus, type MasterySummary,
 } from '@/lib/revisit';
 import { RecallCell, KeyInsightInput } from '../components';
+import { Reveal, Stagger, StaggerItem, AnimatedNumber, celebrate, originOf, EASE } from '../ui';
 
 /* ── Small helpers ── */
 
-const STATUS_STYLE: Record<RecallStatus, { color: string; bg: string; border: string }> = {
-  New: { color: 'var(--text-muted)', bg: 'transparent', border: 'var(--border-default)' },
-  Red: { color: '#ef4444', bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.35)' },
-  Yellow: { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.35)' },
-  Green: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)', border: 'rgba(34,197,94,0.35)' },
-  Retired: { color: '#22c55e', bg: 'transparent', border: 'rgba(34,197,94,0.35)' },
+const STATUS_COLOR: Record<RecallStatus, string> = {
+  New: 'var(--text-muted)',
+  Red: 'var(--level-hard)',
+  Yellow: 'var(--level-medium)',
+  Green: 'var(--level-easy)',
+  Retired: 'var(--gold)',
 };
 
 function StatusChip({ status }: { status: RecallStatus }) {
-  const s = STATUS_STYLE[status];
+  const color = STATUS_COLOR[status];
   return (
-    <span style={{
-      display: 'inline-block', padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
-      fontSize: '0.62rem', fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.border}`,
-    }}>
-      {status === 'Retired' ? '🏁 Retired' : status}
-    </span>
+      <motion.span
+        key={status}
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        className="chip"
+        style={{
+          color, borderColor: status === 'New' ? 'var(--border-default)' : `color-mix(in srgb, ${color} 35%, transparent)`,
+          background: status === 'New' ? 'transparent' : `color-mix(in srgb, ${color} 9%, transparent)`,
+          borderStyle: status === 'New' ? 'dashed' : 'solid',
+        }}
+      >
+        {status === 'Retired' ? <Flag size={10} /> : status !== 'New' && <span className="dot" style={{ background: color }} />}
+        {status}
+      </motion.span>
   );
 }
 
@@ -42,31 +57,39 @@ function weekText(t: RoadmapTopic): string {
     : `${t.weekLabel} · ${sat(t.weekStart)} – ${sat(t.weekEnd)}`;
 }
 
-const chipStyle = (color: string): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4,
-  fontSize: '0.58rem', fontWeight: 700, whiteSpace: 'nowrap', textDecoration: 'none',
-  color, background: `color-mix(in srgb, ${color} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 30%, transparent)`,
-});
-
 function RefTags({ zoho, alsoIn }: { zoho: TrackerRef[]; alsoIn: TrackerRef[] }) {
   if (!zoho.length && !alsoIn.length) return null;
   const zohoSets = [...new Set(zoho.map((z) => z.source))];
   return (
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
       {zohoSets.map((set) => (
-        <Link key={set} href="/zoho-interview" style={chipStyle('#a78bfa')}
+        <Link key={set} href="/zoho-interview" className="chip"
           title={`Also in your Zoho set (separate progress):\n${zoho.filter((z) => z.source === set).map((z) => `• ${z.name}`).join('\n')}`}>
-          🏢 {set}
+          <Building2 size={10} /> {set}
         </Link>
       ))}
       {alsoIn.map((a) => (
-        <span key={a.key} style={chipStyle('#818cf8')} title={`Another copy in your tracker with its own progress:\n${a.name}`}>
-          ↔ also in {a.source}
+        <span key={a.key} className="chip" title={`Another copy in your tracker with its own progress:\n${a.name}`}>
+          <ArrowLeftRight size={10} /> also in {a.source}
         </span>
       ))}
     </div>
   );
 }
+
+function SectionTitle({ icon, title, children }: { icon: React.ReactNode; title: string; children?: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+      <span style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 8, border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>{icon}</span>
+      <h2 style={{ fontSize: '0.98rem', fontWeight: 650, letterSpacing: '-0.015em' }}>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+const tableCard: React.CSSProperties = {
+  background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 14, overflowX: 'auto',
+};
 
 /* ── Due today ── */
 
@@ -87,144 +110,206 @@ function DueToday({ items, entryByKey, urlByKey, getProblemState, onRate, onDate
   const due = items.filter((i) => i.daysUntil <= 0 && !doneKeys.includes(i.key)); // sorted by date → most overdue first
   const done = doneKeys.map((k) => items.find((i) => i.key === k)).filter((i): i is QueueItem => !!i);
   const rows = [...due, ...done];
+  const nextUp = items.find((i) => i.daysUntil > 0 && !doneKeys.includes(i.key));
 
   return (
-    <section id="due-today" style={{ marginBottom: 32, scrollMarginTop: 140 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>🔔 Due today</h2>
-        <span style={{ fontSize: '0.68rem', color: due.length ? 'var(--level-hard)' : 'var(--level-easy)', fontWeight: 700 }}>
-          {due.length ? `${due.length} to revisit` : 'Nothing due ✓'}
+    <Reveal id="due-today" style={{ marginBottom: 40, scrollMarginTop: 150 }}>
+      <SectionTitle icon={<BellRing size={14} />} title="Due today">
+        <span className="chip" style={due.length
+          ? { color: 'var(--level-hard)', borderColor: 'rgba(229,83,75,0.3)' }
+          : { color: 'var(--level-easy)', borderColor: 'rgba(63,182,139,0.3)' }}>
+          {due.length ? `${due.length} to revisit` : 'All clear'}
         </span>
-        {done.length > 0 && <span style={{ fontSize: '0.65rem', color: 'var(--level-easy)' }}>{done.length} done this session</span>}
-        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>
-          Most overdue first · re-solve from a blank page, then rate it · includes main-tracker and Zoho problems
-        </span>
-      </div>
-      {rows.length > 0 && (
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 10, overflowX: 'auto' }}>
+        <AnimatePresence>
+          {done.length > 0 && (
+            <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="chip" style={{ color: 'var(--level-easy)' }}>
+              <Check size={10} /> {done.length} done
+            </motion.span>
+          )}
+        </AnimatePresence>
+        <span className="eyebrow" style={{ marginLeft: 'auto' }}>Re-solve from a blank page, then rate it</span>
+      </SectionTitle>
+
+      {rows.length === 0 ? (
+        <div style={{ ...tableCard, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px' }}>
+          <motion.span initial={{ scale: 0.6, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} viewport={{ once: true }} transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+            style={{ display: 'grid', placeItems: 'center', width: 34, height: 34, borderRadius: 10, background: 'var(--level-easy-bg)', color: 'var(--level-easy)' }}>
+            <CircleCheck size={18} />
+          </motion.span>
+          <div>
+            <p style={{ fontSize: '0.84rem', fontWeight: 550 }}>Nothing due today</p>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              {nextUp ? <>Next up: <span style={{ color: 'var(--text-secondary)' }}>{nextUp.name}</span> on {formatShortDate(nextUp.nextReviseDate)}</> : 'Rate a problem and it will come back here on schedule.'}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div style={tableCard}>
           <table className="data-grid">
             <thead>
               <tr>
-                <th style={{ width: 92 }}>Due</th>
+                <th style={{ width: 110 }}>Due</th>
                 <th>Problem</th>
-                <th style={{ width: 160 }}>From</th>
-                <th style={{ width: 70, textAlign: 'center' }}>Last</th>
-                <th style={{ width: 120, textAlign: 'center' }}>Rate · next</th>
+                <th style={{ width: 190 }}>From</th>
+                <th style={{ width: 56, textAlign: 'center' }}>Last</th>
+                <th style={{ width: 130, textAlign: 'center' }}>Rate · next</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((item) => {
-                const isDone = doneKeys.includes(item.key);
-                const entry = entryByKey.get(item.key);
-                const state = getProblemState(item.topicId, item.problemId);
-                const url = entry?.problem.url ?? urlByKey.get(item.key);
-                const last = RATING_META[item.rating];
-                const insightShown = revealed.has(item.key);
-                return (
-                  <tr key={item.key} style={{ opacity: isDone ? 0.55 : 1 }}>
-                    <td style={{ fontSize: '0.7rem', fontWeight: 700, color: isDone ? 'var(--level-easy)' : item.daysUntil < 0 ? 'var(--level-hard)' : 'var(--level-medium)' }}>
-                      {isDone ? '✓ done' : item.daysUntil < 0 ? `${-item.daysUntil}d overdue` : 'today'}
-                      <div style={{ fontSize: '0.58rem', fontWeight: 500, color: 'var(--text-muted)', fontFamily: 'var(--font-geist-mono)' }}>{formatShortDate(item.nextReviseDate)}</div>
-                    </td>
-                    <td>
-                      {item.isZoho ? (
-                        <Link href="/zoho-interview" style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.8rem', textDecoration: 'none' }}>{item.name}</Link>
-                      ) : (
-                        <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.8rem', textDecoration: 'none' }}>
-                          {entry && <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-geist-mono)', fontWeight: 500 }}>{entry.problem.lc} · </span>}
-                          {item.name} <span style={{ opacity: 0.3 }}>↗</span>
-                        </a>
-                      )}
-                      {entry?.problem.core && <span style={{ color: '#fbbf24', marginLeft: 6 }} title="Core problem">★</span>}
-                      <div style={{ marginTop: 2 }}>
-                        {state.keyInsight ? (
-                          <button onClick={() => setRevealed((prev) => { const n = new Set(prev); if (n.has(item.key)) n.delete(item.key); else n.add(item.key); return n; })}
-                            title="Try to recall it first — then reveal"
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.66rem', color: insightShown ? '#fbbf24' : 'var(--text-muted)', textAlign: 'left' }}>
-                            💡 {insightShown ? state.keyInsight : 'reveal key insight'}
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', opacity: 0.6 }}>💡 no key insight yet — add one on its row</span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
-                      {entry ? `${entry.topic.id}. ${entry.topic.name}` : item.source}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: last.color }} title={`Last rating: ${last.label}`} />
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <RecallCell
-                        state={state}
-                        onRate={(rating) => { onRate(item, rating); setDoneKeys((prev) => prev.includes(item.key) ? prev : [...prev, item.key]); }}
-                        onDateChange={(d) => onDate(item, d)}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
+              <AnimatePresence initial={false}>
+                {rows.map((item) => {
+                  const isDone = doneKeys.includes(item.key);
+                  const entry = entryByKey.get(item.key);
+                  const state = getProblemState(item.topicId, item.problemId);
+                  const url = entry?.problem.url ?? urlByKey.get(item.key);
+                  const last = RATING_META[item.rating];
+                  const insightShown = revealed.has(item.key);
+                  return (
+                    <motion.tr
+                      key={item.key}
+                      layout="position"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: isDone ? 0.5 : 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35, ease: EASE }}
+                    >
+                      <td>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: isDone ? 'var(--level-easy)' : item.daysUntil < 0 ? 'var(--level-hard)' : 'var(--level-medium)' }}>
+                          {isDone ? <><Check size={12} /> Done</> : item.daysUntil < 0 ? `${-item.daysUntil}d overdue` : 'Today'}
+                        </span>
+                        <div className="tabular" style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontFamily: 'var(--font-geist-mono)' }}>{formatShortDate(item.nextReviseDate)}</div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {entry && <span className="tabular" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-geist-mono)', fontSize: '0.72rem' }}>{entry.problem.lc}</span>}
+                          {item.isZoho ? (
+                            <Link href="/zoho-interview" className="title-link">{item.name}</Link>
+                          ) : (
+                            <a href={url} target="_blank" rel="noopener noreferrer" className="title-link">{item.name} <ArrowUpRight size={12} className="title-link-icon" /></a>
+                          )}
+                          {entry?.problem.core && <Star size={11} fill="var(--gold)" color="var(--gold)" aria-label="Core problem" />}
+                        </div>
+                        <div style={{ marginTop: 4 }}>
+                          {state.keyInsight ? (
+                            <button onClick={() => setRevealed((prev) => { const n = new Set(prev); if (n.has(item.key)) n.delete(item.key); else n.add(item.key); return n; })}
+                              title="Try to recall it first — then reveal"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.7rem', color: insightShown ? 'var(--text-secondary)' : 'var(--text-muted)', textAlign: 'left' }}>
+                              {insightShown ? <Lightbulb size={12} color="var(--gold)" /> : <Eye size={12} />}
+                              <motion.span key={insightShown ? 'shown' : 'hidden'} initial={{ opacity: 0, filter: 'blur(4px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} transition={{ duration: 0.25 }}>
+                                {insightShown ? state.keyInsight : 'Reveal key insight'}
+                              </motion.span>
+                              {insightShown && <EyeOff size={11} style={{ opacity: 0.5 }} />}
+                            </button>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.68rem', color: 'var(--text-muted)', opacity: 0.7 }}><Lightbulb size={12} /> No key insight yet — add one on its row</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                        {entry ? `${entry.topic.id}. ${entry.topic.name}` : item.source}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="dot" style={{ width: 8, height: 8, background: last.color }} title={`Last rating: ${last.label}`} />
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <RecallCell
+                          state={state}
+                          onRate={(rating) => { onRate(item, rating); setDoneKeys((prev) => prev.includes(item.key) ? prev : [...prev, item.key]); }}
+                          onDateChange={(d) => onDate(item, d)}
+                        />
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </AnimatePresence>
             </tbody>
           </table>
         </div>
       )}
-    </section>
+    </Reveal>
   );
 }
 
 /* ── Topic progress (★ Green/Retired) ── */
 
-const BAR_ORDER: RecallStatus[] = ['Retired', 'Green', 'Yellow', 'Red', 'New'];
+const BAR_ORDER: RecallStatus[] = ['Retired', 'Green', 'Yellow', 'Red'];
 const BAR_COLOR: Record<RecallStatus, string> = {
-  Retired: '#15803d', Green: '#22c55e', Yellow: '#f59e0b', Red: '#ef4444', New: 'var(--border-default)',
+  Retired: 'var(--gold)', Green: 'var(--level-easy)', Yellow: 'var(--level-medium)', Red: 'var(--level-hard)', New: 'transparent',
 };
 
 function TopicProgress({ topics, mastery }: { topics: RoadmapTopic[]; mastery: Map<number, MasterySummary> }) {
   const all = [...mastery.values()];
   const masteredCount = all.filter((m) => m.mastered).length;
-  const coreDone = all.reduce((n, m) => n + m.coreDone, 0);
-  const coreTotal = all.reduce((n, m) => n + m.coreTotal, 0);
   return (
-    <section id="progress" style={{ marginBottom: 32, scrollMarginTop: 140 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>📊 Topic progress</h2>
-        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#fbbf24' }}>🏆 {masteredCount}/{topics.length} mastered</span>
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>★ Green or Retired: {coreDone}/{coreTotal}</span>
-        <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}
-          title="The roadmap also asks you to solve 2 unseen Medium problems from the topic in ~25 min each — do that as your own check once a topic shows 🏆.">
-          Mastered = every ★ problem Green or Retired ⓘ
-        </span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 8 }}>
+    <section id="progress" style={{ marginBottom: 44, scrollMarginTop: 150 }}>
+      <Reveal>
+        <SectionTitle icon={<BarChart3 size={14} />} title="Topic progress">
+          <span className="chip" style={{ color: 'var(--gold)', borderColor: 'rgba(214,168,79,0.3)' }}><Trophy size={10} /> {masteredCount}/{topics.length} mastered</span>
+          <span className="eyebrow" style={{ marginLeft: 'auto' }}
+            title="The roadmap also asks you to solve 2 unseen Medium problems from the topic in ~25 min each — do that as your own check once a topic shows the trophy.">
+            Mastered when every ★ is Green or Retired
+          </span>
+        </SectionTitle>
+      </Reveal>
+      <Stagger gap={0.03} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
         {topics.map((t) => {
           const m = mastery.get(t.id)!;
           return (
-            <a key={t.id} href={`#topic-${t.id}`} style={{
-              display: 'block', textDecoration: 'none', color: 'inherit', padding: '10px 12px', borderRadius: 10,
-              background: m.mastered ? 'rgba(251,191,36,0.06)' : 'var(--bg-card)',
-              border: `1px solid ${m.mastered ? 'rgba(251,191,36,0.45)' : 'var(--border-subtle)'}`,
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, lineHeight: 1.3 }}>{t.id}. {t.name}</span>
-                {m.mastered && <span title="Mastered: every ★ is Green or Retired" style={{ fontSize: '0.9rem' }}>🏆</span>}
-              </div>
-              <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', marginTop: 2 }}>{t.weekLabel}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
-                <span style={{ fontSize: '1.05rem', fontWeight: 800, fontFamily: 'var(--font-geist-mono)', color: m.mastered ? '#fbbf24' : m.coreDone ? 'var(--level-easy)' : 'var(--text-secondary)' }}>
-                  ★ {m.coreDone}/{m.coreTotal}
-                </span>
-                <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)' }}>all {m.allDone}/{m.allTotal}</span>
-              </div>
-              <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', marginTop: 6, background: 'var(--border-subtle)' }}
-                title={BAR_ORDER.map((s) => `${s}: ${m.coreCounts[s]}`).join(' · ') + ' (★ only)'}>
-                {BAR_ORDER.map((s) => m.coreCounts[s] > 0 && (
-                  <div key={s} style={{ width: `${(m.coreCounts[s] / m.coreTotal) * 100}%`, background: BAR_COLOR[s] }} />
-                ))}
-              </div>
-            </a>
+            <StaggerItem key={t.id}>
+              <motion.a
+                id={`progress-card-${t.id}`}
+                href={`#topic-${t.id}`}
+                whileHover={{ y: -3 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                className={`card card-hover${m.mastered ? ' sheen' : ''}`}
+                style={{
+                  display: 'block', textDecoration: 'none', color: 'inherit', padding: '14px 14px 13px', height: '100%',
+                  borderColor: m.mastered ? 'rgba(214,168,79,0.4)' : undefined,
+                  background: m.mastered ? 'linear-gradient(180deg, rgba(214,168,79,0.07), var(--bg-card) 70%)' : undefined,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <span className="tabular" style={{ fontSize: '0.62rem', fontFamily: 'var(--font-geist-mono)', color: 'var(--text-muted)' }}>{String(t.id).padStart(2, '0')}</span>
+                    <p style={{ fontSize: '0.78rem', fontWeight: 550, lineHeight: 1.3, marginTop: 1 }}>{t.name}</p>
+                  </div>
+                  <AnimatePresence>
+                    {m.mastered && (
+                      <motion.span
+                        initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 14 }}
+                        title="Mastered: every ★ is Green or Retired"
+                        style={{ color: 'var(--gold)', display: 'grid' }}
+                      >
+                        <Trophy size={16} />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 12 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.03em', color: m.mastered ? 'var(--gold)' : m.coreDone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                    <AnimatedNumber value={m.coreDone} />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>/ {m.coreTotal} ★</span>
+                  </span>
+                  <span className="tabular" style={{ marginLeft: 'auto', fontSize: '0.64rem', color: 'var(--text-muted)' }}>{t.weekLabel.replace('Mix in from ', 'from ')}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 2, height: 4, borderRadius: 999, overflow: 'hidden', marginTop: 10, background: 'rgba(255,255,255,0.05)' }}
+                  title={[...BAR_ORDER, 'New' as RecallStatus].map((s) => `${s}: ${m.coreCounts[s]}`).join(' · ') + ' (★ only)'}>
+                  {BAR_ORDER.map((s, i) => (
+                    <motion.div
+                      key={s}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(m.coreCounts[s] / m.coreTotal) * 100}%` }}
+                      transition={{ duration: 0.9, ease: EASE, delay: 0.1 + i * 0.05 }}
+                      style={{ background: BAR_COLOR[s], borderRadius: 999 }}
+                    />
+                  ))}
+                </div>
+              </motion.a>
+            </StaggerItem>
           );
         })}
-      </div>
+      </Stagger>
     </section>
   );
 }
@@ -259,6 +344,8 @@ export default function RoadmapPage() {
   const [coreOnly, setCoreOnly] = useState(false);
   const [statusFilter, setStatusFilter] = useState<RecallStatus | 'All'>('All');
   const [search, setSearch] = useState('');
+  const [activeSection, setActiveSection] = useState<string>('due-today');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   // Roadmap rows per topic, in roadmap order
   const topicRows = useMemo(() => ROADMAP_TOPICS.map((t) => ({
@@ -309,6 +396,44 @@ export default function RoadmapPage() {
     return m;
   }, [topicRows, getProblemState]);
 
+  // Confetti the moment a topic becomes mastered (not on first load)
+  const masteredBefore = useRef<Set<number> | null>(null);
+  useEffect(() => {
+    if (!mounted) return;
+    const now = new Set([...mastery].filter(([, m]) => m.mastered).map(([id]) => id));
+    if (masteredBefore.current) {
+      now.forEach((id) => {
+        if (!masteredBefore.current!.has(id)) {
+          celebrate(originOf(document.getElementById(`topic-${id}`)?.querySelector('h2') ?? null));
+        }
+      });
+    }
+    masteredBefore.current = now;
+  }, [mastery, mounted]);
+
+  // Scroll-spy for the jump nav
+  useEffect(() => {
+    if (!mounted) return;
+    const ids = ['due-today', 'progress', ...ROADMAP_TOPICS.map((t) => `topic-${t.id}`), 'tracker-only'];
+    const els = ids.map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
+    const io = new IntersectionObserver((entries) => {
+      const visibleEntries = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visibleEntries[0]) setActiveSection(visibleEntries[0].target.id);
+    }, { rootMargin: '-160px 0px -60% 0px' });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [mounted, coreOnly, statusFilter, search]);
+
+  // "/" focuses search
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const typing = (e.target as HTMLElement)?.closest('input, textarea');
+      if (e.key === '/' && !typing) { e.preventDefault(); searchRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const q = search.trim().toLowerCase();
   const visible = (r: Row) =>
     (!coreOnly || r.core) &&
@@ -317,21 +442,27 @@ export default function RoadmapPage() {
   const filtering = coreOnly || statusFilter !== 'All' || !!q;
 
   if (!mounted) {
-    return <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading roadmap…</div>;
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} style={{ display: 'grid', gap: 10, width: 260 }}>
+          {[0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 10, width: `${100 - i * 22}%` }} />)}
+        </motion.div>
+      </div>
+    );
   }
 
   const renderTable = (rows: Row[], opts: { showCore: boolean; sourceOf?: (r: Row) => string }) => (
-    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 10, overflowX: 'auto' }}>
+    <div style={tableCard}>
       <table className="data-grid">
         <thead>
           <tr>
-            <th style={{ width: 58 }}>LC</th>
-            <th>Problem · key insight</th>
-            <th style={{ width: 70, textAlign: 'center' }}>Level</th>
-            {opts.showCore && <th style={{ width: 36, textAlign: 'center' }} title="Core problem — do these first">★</th>}
-            <th style={{ width: 84, textAlign: 'center' }}>Status</th>
-            <th style={{ width: 120, textAlign: 'center' }} title="Rate today's attempt · next revisit date">Recall · next</th>
-            <th style={{ width: 84 }}>Last solved</th>
+            <th style={{ width: 64 }}>LC</th>
+            <th>Problem</th>
+            <th style={{ width: 92, textAlign: 'center' }}>Level</th>
+            {opts.showCore && <th style={{ width: 40, textAlign: 'center' }} title="Core problem — do these first">★</th>}
+            <th style={{ width: 96, textAlign: 'center' }}>Status</th>
+            <th style={{ width: 130, textAlign: 'center' }} title="Rate today's attempt · next revisit date">Recall · next</th>
+            <th style={{ width: 92 }}>Last solved</th>
           </tr>
         </thead>
         <tbody>
@@ -340,18 +471,21 @@ export default function RoadmapPage() {
             const status = recallStatus(state);
             return (
               <tr key={r.key} id={`rm-${r.key}`}>
-                <td style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{r.lc ?? '—'}</td>
-                <td style={{ minWidth: 260 }}>
-                  <a href={r.url} target="_blank" rel="noopener noreferrer"
-                    style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.8rem', textDecoration: 'none' }}>
-                    {r.title} <span style={{ opacity: 0.3 }}>↗</span>
+                <td className="tabular" style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{r.lc ?? '—'}</td>
+                <td style={{ minWidth: 280 }}>
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="title-link">
+                    {r.title} <ArrowUpRight size={12} className="title-link-icon" />
                   </a>
-                  {opts.sourceOf && <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}> · {opts.sourceOf(r)}</span>}
+                  {opts.sourceOf && <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}> · {opts.sourceOf(r)}</span>}
                   <KeyInsightInput value={state.keyInsight || ''} onSave={(v) => updateKeyInsight(r.topicId, r.problemId, v)} />
                   <RefTags zoho={r.zoho} alsoIn={r.alsoIn} />
                 </td>
                 <td style={{ textAlign: 'center' }}><span className={`level-badge level-${r.level}`}>{r.level}</span></td>
-                {opts.showCore && <td style={{ textAlign: 'center', color: '#fbbf24' }}>{r.core ? '★' : ''}</td>}
+                {opts.showCore && (
+                  <td style={{ textAlign: 'center' }}>
+                    {r.core && <Star size={12} fill="var(--gold)" color="var(--gold)" aria-label="Core" style={{ display: 'inline' }} />}
+                  </td>
+                )}
                 <td style={{ textAlign: 'center' }}><StatusChip status={status} /></td>
                 <td style={{ textAlign: 'center' }}>
                   <RecallCell
@@ -360,7 +494,7 @@ export default function RoadmapPage() {
                     onDateChange={(d) => updateRevisitDate(r.topicId, r.problemId, d)}
                   />
                 </td>
-                <td style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.7rem', color: state.lastSolved ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                <td className="tabular" style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.7rem', color: state.lastSolved ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
                   {state.lastSolved ? formatShortDate(state.lastSolved) : '—'}
                 </td>
               </tr>
@@ -374,73 +508,113 @@ export default function RoadmapPage() {
   const totalCore = topicRows.reduce((n, t) => n + t.rows.filter((r) => r.core).length, 0);
   const totalProblems = topicRows.reduce((n, t) => n + t.rows.length, 0);
   const visibleTrackerOnly = trackerOnlyRows.filter(visible);
+  const coreDone = [...mastery.values()].reduce((n, m) => n + m.coreDone, 0);
+  const masteredCount = [...mastery.values()].filter((m) => m.mastered).length;
+
+  const navItems: { id: string; label: React.ReactNode; title?: string }[] = [
+    { id: 'due-today', label: <><BellRing size={11} /> Due <span className="tabular" style={{ color: dueCount ? 'var(--level-hard)' : 'inherit' }}>{dueCount}</span></> },
+    { id: 'progress', label: <><BarChart3 size={11} /> Progress</> },
+    ...ROADMAP_TOPICS.map((t) => ({
+      id: `topic-${t.id}`,
+      title: t.name,
+      label: <>{mastery.get(t.id)?.mastered && <Trophy size={10} color="var(--gold)" />}<span className="tabular" style={{ color: 'var(--text-muted)' }}>{t.id}</span> {t.name.split(/[:&·(]/)[0].trim()}</>,
+    })),
+  ];
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <div style={{ minHeight: '100vh', position: 'relative' }}>
       {/* Header */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,10,15,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-subtle)', padding: '12px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Link href="/" style={{ textDecoration: 'none', color: 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 600, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
-            ← Tracker
-          </Link>
-          <Link href="/zoho-interview" style={{ textDecoration: 'none', color: '#a78bfa', fontSize: '0.78rem', fontWeight: 600, padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(167,139,250,0.3)' }}>
-            🏢 Zoho
-          </Link>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <h1 style={{ fontSize: '1.05rem', fontWeight: 800, background: 'linear-gradient(135deg, #a78bfa, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Pattern Roadmap
-            </h1>
-            <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-              {ROADMAP_TOPICS.length} topics · {totalProblems} problems · {totalCore} ★ core
-            </p>
+      <header className="glass" style={{ position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ maxWidth: 1220, margin: '0 auto', padding: '12px 28px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Link href="/" className="btn btn-ghost btn-sm"><ArrowLeft size={13} /> Tracker</Link>
+            <Link href="/zoho-interview" className="btn btn-ghost btn-sm"><Building2 size={13} /> Zoho</Link>
+            <span style={{ width: 1, height: 18, background: 'var(--border-default)', margin: '0 6px' }} />
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <h1 style={{ fontSize: '0.98rem', fontWeight: 650, letterSpacing: '-0.02em' }}>Pattern roadmap</h1>
+            </div>
+            <div style={{ position: 'relative', width: 240 }}>
+              <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                ref={searchRef}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search title or LC #"
+                className="input"
+                style={{ paddingLeft: 30, paddingRight: 30 }}
+              />
+              <span className="kbd" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}>/</span>
+            </div>
           </div>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title or LC #"
-            style={{ width: 200, padding: '6px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: '0.75rem' }}
-          />
-        </div>
 
-        {/* Filters */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-          <button onClick={() => setCoreOnly((v) => !v)} aria-pressed={coreOnly} style={{
-            padding: '3px 10px', borderRadius: 999, cursor: 'pointer', fontSize: '0.65rem', fontWeight: 700,
-            color: coreOnly ? '#0a0a0f' : '#fbbf24', background: coreOnly ? '#fbbf24' : 'transparent', border: '1px solid rgba(251,191,36,0.4)',
-          }}>★ core only</button>
-          <span style={{ width: 1, height: 16, background: 'var(--border-default)', margin: '0 4px' }} />
-          {(['All', ...RECALL_STATUSES] as const).map((s) => {
-            const active = statusFilter === s;
-            const color = s === 'All' ? 'var(--accent-primary)' : STATUS_STYLE[s].color;
-            return (
-              <button key={s} onClick={() => setStatusFilter(s)} aria-pressed={active} style={{
-                padding: '3px 10px', borderRadius: 999, cursor: 'pointer', fontSize: '0.65rem', fontWeight: 700,
-                color: active ? '#0a0a0f' : color, background: active ? color : 'transparent',
-                border: `1px solid ${active ? color : 'var(--border-default)'}`,
-              }}>
-                {s}{s !== 'All' && <span style={{ opacity: 0.7 }}> {statusCounts[s]}</span>}
-              </button>
-            );
-          })}
-        </div>
+          {/* Filters */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCoreOnly((v) => !v)}
+              aria-pressed={coreOnly}
+              className="btn btn-sm"
+              style={coreOnly ? { color: '#09090b', background: 'var(--gold)', borderColor: 'transparent' } : { color: 'var(--gold)' }}
+            >
+              <Star size={11} fill={coreOnly ? '#09090b' : 'none'} /> Core only
+            </motion.button>
+            <div role="tablist" aria-label="Filter by status" style={{ display: 'flex', padding: 2, gap: 2, borderRadius: 9, border: '1px solid var(--border-default)', background: 'rgba(255,255,255,0.015)' }}>
+              {(['All', ...RECALL_STATUSES] as const).map((s) => {
+                const active = statusFilter === s;
+                const color = s === 'All' ? 'var(--text-primary)' : STATUS_COLOR[s];
+                return (
+                  <button key={s} role="tab" aria-selected={active} aria-pressed={active} onClick={() => setStatusFilter(s)} style={{
+                    position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 10px', borderRadius: 7,
+                    border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 550,
+                    color: active ? 'var(--text-primary)' : 'var(--text-muted)', transition: 'color 0.2s',
+                  }}>
+                    {active && <motion.span layoutId="status-filter-pill" transition={{ type: 'spring', stiffness: 480, damping: 36 }} style={{ position: 'absolute', inset: 0, borderRadius: 7, background: 'rgba(255,255,255,0.07)', boxShadow: 'inset 0 0 0 1px var(--border-default)' }} />}
+                    {s !== 'All' && <span className="dot" style={{ position: 'relative', background: color, opacity: active ? 1 : 0.7 }} />}
+                    <span style={{ position: 'relative' }}>{s}</span>
+                    {s !== 'All' && <span className="tabular" style={{ position: 'relative', opacity: 0.55 }}>{statusCounts[s]}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-        {/* Topic jump nav */}
-        <nav style={{ display: 'flex', gap: 4, marginTop: 8, overflowX: 'auto', paddingBottom: 2 }}>
-          <a href="#due-today" style={{ flexShrink: 0, padding: '2px 8px', borderRadius: 6, fontSize: '0.62rem', fontWeight: 700, color: dueCount ? '#ef4444' : 'var(--level-easy)', border: `1px solid ${dueCount ? 'rgba(239,68,68,0.35)' : 'rgba(34,197,94,0.3)'}`, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-            🔔 Due {dueCount}
-          </a>
-          <a href="#progress" style={{ flexShrink: 0, padding: '2px 8px', borderRadius: 6, fontSize: '0.62rem', fontWeight: 700, color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-            📊 Progress
-          </a>
-          {ROADMAP_TOPICS.map((t) => (
-            <a key={t.id} href={`#topic-${t.id}`} title={t.name} style={{ flexShrink: 0, padding: '2px 8px', borderRadius: 6, fontSize: '0.62rem', fontWeight: 600, color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-              {mastery.get(t.id)?.mastered ? '🏆 ' : ''}{t.id}. {t.name.split(/[:&·(]/)[0].trim()}
-            </a>
-          ))}
-        </nav>
+          {/* Jump nav with scroll-spy */}
+          <nav style={{ display: 'flex', gap: 2, marginTop: 10, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
+            {navItems.map((n) => {
+              const active = activeSection === n.id;
+              return (
+                <a key={n.id} href={`#${n.id}`} title={n.title} style={{
+                  position: 'relative', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, height: 26, padding: '0 10px', borderRadius: 7,
+                  fontSize: '0.7rem', fontWeight: 500, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', textDecoration: 'none', whiteSpace: 'nowrap', transition: 'color 0.2s',
+                }}>
+                  {active && <motion.span layoutId="jump-nav-pill" transition={{ type: 'spring', stiffness: 420, damping: 36 }} style={{ position: 'absolute', inset: 0, borderRadius: 7, background: 'rgba(255,255,255,0.06)' }} />}
+                  <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 5 }}>{n.label}</span>
+                </a>
+              );
+            })}
+          </nav>
+        </div>
       </header>
 
-      <main style={{ maxWidth: 1180, margin: '0 auto', padding: '20px 24px 60px' }}>
+      <main style={{ maxWidth: 1220, margin: '0 auto', padding: '28px 28px 80px', position: 'relative', zIndex: 1 }}>
+        {/* Overview */}
+        <Stagger onView={false} gap={0.06} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 36 }}>
+          {[
+            { label: 'Due today', value: dueCount, total: null as number | null, color: dueCount ? 'var(--level-hard)' : 'var(--text-primary)', icon: <BellRing size={13} /> },
+            { label: 'Core Green or Retired', value: coreDone, total: totalCore, color: 'var(--text-primary)', icon: <Star size={13} /> },
+            { label: 'Topics mastered', value: masteredCount, total: ROADMAP_TOPICS.length, color: masteredCount ? 'var(--gold)' : 'var(--text-primary)', icon: <Trophy size={13} /> },
+            { label: 'Problems on the roadmap', value: totalProblems, total: null, color: 'var(--text-primary)', icon: <CalendarDays size={13} /> },
+          ].map((s) => (
+            <StaggerItem key={s.label} className="stat-card">
+              <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{s.icon} {s.label}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 10 }}>
+                <AnimatedNumber value={s.value} style={{ fontSize: '1.7rem', fontWeight: 600, letterSpacing: '-0.04em', lineHeight: 1, color: s.color }} />
+                {s.total !== null && <span className="tabular" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>/ {s.total}</span>}
+              </div>
+            </StaggerItem>
+          ))}
+        </Stagger>
+
         <DueToday
           items={revisitQueue.items}
           entryByKey={entryByKey}
@@ -450,42 +624,54 @@ export default function RoadmapPage() {
           onDate={(item, d) => updateRevisitDate(item.topicId, item.problemId, d)}
         />
         <TopicProgress topics={ROADMAP_TOPICS} mastery={mastery} />
+
         {topicRows.map(({ topic, rows }) => {
           const shown = rows.filter(visible);
           if (filtering && !shown.length) return null;
           const m = mastery.get(topic.id)!;
           return (
-            <section key={topic.id} id={`topic-${topic.id}`} style={{ marginBottom: 28, scrollMarginTop: 140 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-                <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>{topic.id}. {topic.name}</h2>
-                <span style={{ fontSize: '0.68rem', color: 'var(--accent-primary)', fontWeight: 600 }}>{weekText(topic)}</span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{rows.length} problems · {m.coreTotal} ★</span>
-                {m.mastered ? (
-                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fbbf24', padding: '1px 8px', borderRadius: 999, border: '1px solid rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.08)' }}>🏆 Mastered</span>
-                ) : (
-                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: m.coreDone ? 'var(--level-easy)' : 'var(--text-muted)' }}>★ {m.coreDone}/{m.coreTotal} Green/Retired</span>
-                )}
-              </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 10, display: 'grid', gap: 2 }}>
-                {topic.recognise && <p><strong style={{ color: 'var(--text-primary)' }}>Recognise it:</strong> {topic.recognise}</p>}
-                {topic.coreIdea && <p><strong style={{ color: 'var(--text-primary)' }}>Core idea:</strong> <span className="markdown-body" style={{ display: 'inline' }}><ReactMarkdown components={{ p: ({ children }) => <>{children}</> }}>{topic.coreIdea}</ReactMarkdown></span></p>}
-                {topic.notes.map((n, i) => (
-                  <div key={i} className="markdown-body">• <ReactMarkdown components={{ p: ({ children }) => <>{children}</> }}>{n}</ReactMarkdown></div>
-                ))}
-              </div>
-              {renderTable(shown, { showCore: true })}
+            <section key={topic.id} id={`topic-${topic.id}`} style={{ marginBottom: 44, scrollMarginTop: 150 }}>
+              <Reveal>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <span className="tabular" style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.74rem', color: 'var(--text-muted)' }}>{String(topic.id).padStart(2, '0')}</span>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 650, letterSpacing: '-0.02em' }}>{topic.name}</h2>
+                  <span className="chip"><CalendarDays size={10} /> {weekText(topic)}</span>
+                  <span className="chip tabular">{rows.length} problems · {m.coreTotal} ★</span>
+                    {m.mastered ? (
+                      <motion.span key="m" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }}
+                        className="chip" style={{ color: 'var(--gold)', borderColor: 'rgba(214,168,79,0.4)', background: 'var(--gold-soft)' }}>
+                        <Trophy size={10} /> Mastered
+                      </motion.span>
+                    ) : (
+                      <motion.span key="p" initial={false} animate={{ opacity: 1 }} className="chip tabular"
+                        style={{ color: m.coreDone ? 'var(--level-easy)' : 'var(--text-muted)' }}>
+                        ★ {m.coreDone}/{m.coreTotal} Green/Retired
+                      </motion.span>
+                    )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 14, rowGap: 4, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 14, maxWidth: 900 }}>
+                  {topic.recognise && <><span className="eyebrow" style={{ paddingTop: 2 }}>Recognise</span><span>{topic.recognise}</span></>}
+                  {topic.coreIdea && <><span className="eyebrow" style={{ paddingTop: 2 }}>Core idea</span><span className="markdown-body"><ReactMarkdown components={{ p: ({ children }) => <>{children}</> }}>{topic.coreIdea}</ReactMarkdown></span></>}
+                  {topic.notes.map((n, i) => (
+                    <div key={i} className="markdown-body" style={{ gridColumn: '1 / -1' }}>• <ReactMarkdown components={{ p: ({ children }) => <>{children}</> }}>{n}</ReactMarkdown></div>
+                  ))}
+                </div>
+              </Reveal>
+              <Reveal delay={0.05}>{renderTable(shown, { showCore: true })}</Reveal>
             </section>
           );
         })}
 
         {/* Tracker-only problems */}
         {(!filtering || visibleTrackerOnly.length > 0) && (
-          <section id="tracker-only" style={{ marginTop: 40 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>Only in my tracker</h2>
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{trackerOnlyRows.length} problems not on the roadmap — same progress as on the main page</span>
-            </div>
-            {renderTable(visibleTrackerOnly, { showCore: false, sourceOf: (r) => (r as Row & { source: string }).source })}
+          <section id="tracker-only" style={{ marginTop: 56, scrollMarginTop: 150 }}>
+            <Reveal>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 650, letterSpacing: '-0.02em' }}>Only in my tracker</h2>
+                <span className="eyebrow">{trackerOnlyRows.length} problems not on the roadmap — same progress as on the main page</span>
+              </div>
+            </Reveal>
+            <Reveal delay={0.05}>{renderTable(visibleTrackerOnly, { showCore: false, sourceOf: (r) => (r as Row & { source: string }).source })}</Reveal>
           </section>
         )}
       </main>
