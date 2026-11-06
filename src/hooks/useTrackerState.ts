@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { topics, ProblemStatus, STATUS_CYCLE } from '@/data/topics';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
+import {
+  type RecallRating, type RecallAttempt,
+  computeLadder, appendAttempt, localToday, daysBetween,
+} from '@/lib/revisit';
+import { buildProblemIndex, getRoadmapIndex } from '@/lib/problemIndex';
 
 export interface ProblemState {
   status: ProblemStatus;
@@ -11,9 +16,17 @@ export interface ProblemState {
   notes: string;
   // SRS fields
   solveConfidence?: 'easy' | 'medium' | 'hard';
-  nextReviseDate?: string;
+  nextReviseDate?: string; // shared "next revisit" date; owned by the recall ladder once a problem is rated
   srsInterval?: number; // days
   srsStage?: number; // 0=first, 1=second, etc.
+  // Recall system (24-week plan) — all optional, absent on problems never rated
+  rating?: RecallRating; // colour of the latest attempt
+  keyInsight?: string; // one sentence, in your own words
+  attemptLog?: RecallAttempt[]; // source of truth for the ladder
+  revisitStep?: number; // rung: 0=next day, 1=+7d, 2=+3w, 3=+6w
+  greenStreak?: number;
+  retired?: boolean;
+  lastSolved?: string; // YYYY-MM-DD of the most recent R/Y/G attempt
   // Company tags
   companyTags?: string[];
   // Timer
@@ -240,6 +253,8 @@ export function useTrackerState() {
 
     Object.keys(result).forEach((key) => {
       const state = result[key];
+      // Retired problems leave the revision cycle (they only return via mixed practice)
+      if (state.retired) return;
       if (state.status === 'solved' && state.dateSolved) {
         const isSolvedToday = new Date(state.dateSolved).toDateString() === todayDateString;
 
@@ -469,6 +484,8 @@ export function useTrackerState() {
       const key = getKey(topicId, problemId);
       const current = data[key];
       if (!current) return;
+      // Once a problem is on the red/yellow/green ladder, the ladder owns nextReviseDate
+      if (current.attemptLog?.length) return;
 
       const interval = confidence === 'easy' ? 14 : confidence === 'medium' ? 7 : 3;
       const nextStage = confidence === 'hard' ? 0 : (current.srsStage || 0) + 1;
@@ -580,6 +597,88 @@ export function useTrackerState() {
     },
     [data, streakData, persist]
   );
+
+  // ── Recall system (red / yellow / green + key insight + revisit ladder) ──
+
+  // Log today's attempt and reschedule. Re-rating on the same day replaces today's entry.
+  const rateAttempt = useCallback(
+    (topicId: number, problemId: number, rating: RecallRating) => {
+      const key = getKey(topicId, problemId);
+      const current = data[key] || { status: 'not_started' as ProblemStatus, dateSolved: '', notes: '' };
+      const attemptLog = appendAttempt(current.attemptLog, { date: localToday(), rating });
+      const ladder = computeLadder(attemptLog)!;
+
+      // A revisit you just did is no longer "due"; a first attempt counts as attempted.
+      // Never touches 'solved' / XP / streak logic — the status button still owns those.
+      let status = current.status;
+      if (status === 'revise') status = 'solved';
+      else if (status === 'not_started') status = 'attempted';
+
+      const updated: TrackerData = { ...data, [key]: { ...current, status, attemptLog, ...ladder } };
+      setData(updated);
+      persist(updated, streakData);
+      if (current.status === 'revise') updateQuestProgress('revise');
+    },
+    [data, streakData, persist, updateQuestProgress]
+  );
+
+  const updateKeyInsight = useCallback(
+    (topicId: number, problemId: number, keyInsight: string) => {
+      const key = getKey(topicId, problemId);
+      const current = data[key] || { status: 'not_started' as ProblemStatus, dateSolved: '', notes: '' };
+      const updated: TrackerData = { ...data, [key]: { ...current, keyInsight: keyInsight.trim() } };
+      setData(updated);
+      persist(updated, streakData);
+    },
+    [data, streakData, persist]
+  );
+
+  // Manual override, e.g. spreading Phase 1 reds across later weekends.
+  // The next rating recomputes the date from the ladder again.
+  const updateRevisitDate = useCallback(
+    (topicId: number, problemId: number, date: string) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+      const key = getKey(topicId, problemId);
+      const current = data[key] || { status: 'not_started' as ProblemStatus, dateSolved: '', notes: '' };
+      const status = current.status === 'revise' && date > localToday() ? 'solved' : current.status;
+      const updated: TrackerData = { ...data, [key]: { ...current, status, nextReviseDate: date, retired: false } };
+      setData(updated);
+      persist(updated, streakData);
+    },
+    [data, streakData, persist]
+  );
+
+  // Roadmap ↔ tracker ↔ Zoho links (recomputed when custom problems change)
+  const roadmapIndex = useMemo(() => getRoadmapIndex(fullTopics), [fullTopics]);
+  const problemIndex = useMemo(() => buildProblemIndex(fullTopics, roadmapIndex), [fullTopics, roadmapIndex]);
+
+  // Everything on the ladder, sorted by next revisit — the plan's "sort by Next revisit" view.
+  const revisitQueue = useMemo(() => {
+    const today = localToday();
+    const counts = { red: 0, yellow: 0, green: 0, retired: 0, untriaged: 0 };
+    const items: {
+      key: string; topicId: number; problemId: number; name: string; source: string; isZoho: boolean;
+      rating: RecallRating; nextReviseDate: string; daysUntil: number; keyInsight: string;
+    }[] = [];
+    problemIndex.forEach((p) => {
+      const s = data[p.key];
+      if (!s) return;
+      if (!s.attemptLog?.length || !s.rating) {
+        // Solved before the recall system existed → needs Phase 1 triage
+        if (s.status === 'solved' || s.status === 'revise') counts.untriaged++;
+        return;
+      }
+      if (s.retired) { counts.retired++; return; }
+      counts[s.rating]++;
+      if (!s.nextReviseDate) return;
+      items.push({
+        ...p, rating: s.rating, nextReviseDate: s.nextReviseDate,
+        daysUntil: daysBetween(today, s.nextReviseDate), keyInsight: s.keyInsight || '',
+      });
+    });
+    items.sort((a, b) => a.nextReviseDate.localeCompare(b.nextReviseDate));
+    return { items, counts, today };
+  }, [data, problemIndex]);
 
   const topicStats = useMemo(() => {
     return fullTopics.map((topic) => {
@@ -857,6 +956,7 @@ export function useTrackerState() {
     getProblemState, cycleStatus, updateNotes, topicStats, foundationComplete, globalStats, resetAll,
     xpData, dailyQuests, weaknessReport, revisionDueToday, pomodoro,
     setSolveConfidence, updateCompanyTags, updateTimeSpent, generateMockInterview, awardXP,
-    addCustomProblem, deleteCustomProblem, addPomodoroSession, exportData, importData
+    addCustomProblem, deleteCustomProblem, addPomodoroSession, exportData, importData,
+    rateAttempt, updateKeyInsight, updateRevisitDate, revisitQueue, roadmapIndex
   };
 }
